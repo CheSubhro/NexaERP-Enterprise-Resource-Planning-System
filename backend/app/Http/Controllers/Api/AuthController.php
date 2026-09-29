@@ -81,8 +81,35 @@ class AuthController extends Controller
      */
     public function user(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        $user->load('role');
+
+        $role = $user->role;
+
+        $permissions = [];
+
+        if ($role) {
+            $permissionIds = $role->permission_ids ?? [];
+
+            $permissions = \App\Models\Permission::whereIn(
+                '_id',
+                $permissionIds
+            )->get([
+                'name',
+                'slug',
+                'module',
+            ]);
+        }
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user,
+            'role' => $role ? [
+                'id' => $role->_id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+            ] : null,
+            'permissions' => $permissions,
         ]);
     }
 }
