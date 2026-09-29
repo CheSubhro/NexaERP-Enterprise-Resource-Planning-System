@@ -12,3 +12,12 @@ Route::prefix('auth')->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
     });
 });
+
+Route::middleware([
+    'auth:sanctum',
+    'permission:products.create',
+])->get('/test/products-create', function () {
+    return response()->json([
+        'message' => 'You have products.create permission.',
+    ]);
+});
