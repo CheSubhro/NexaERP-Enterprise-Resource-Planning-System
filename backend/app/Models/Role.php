@@ -14,15 +14,10 @@ class Role extends Model
         'name',
         'slug',
         'description',
+        'permission_ids',
     ];
 
-    public function permissions()
-    {
-        return $this->belongsToMany(
-            Permission::class,
-            null,
-            'role_ids',
-            '_id'
-        );
-    }
+    protected $casts = [
+        'permission_ids' => 'array',
+    ];
 }

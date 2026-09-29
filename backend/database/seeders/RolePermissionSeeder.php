@@ -164,7 +164,7 @@ class RolePermissionSeeder extends Seeder
                 'module' => 'reports',
             ],
 
-            // Users & Roles
+            // Users
             [
                 'name' => 'View Users',
                 'slug' => 'users.view',
@@ -192,7 +192,13 @@ class RolePermissionSeeder extends Seeder
             ],
         ];
 
-        $permissionModels = [];
+        /*
+        |--------------------------------------------------------------------------
+        | Create / Update Permissions
+        |--------------------------------------------------------------------------
+        */
+
+        $permissionIds = [];
 
         foreach ($permissions as $permissionData) {
             $permission = Permission::updateOrCreate(
@@ -200,44 +206,27 @@ class RolePermissionSeeder extends Seeder
                 $permissionData
             );
 
-            $permissionModels[] = $permission;
+            $permissionIds[$permission->slug] = $permission->_id;
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Roles
+        | Admin Role
         |--------------------------------------------------------------------------
         */
 
-        $adminRole = Role::updateOrCreate(
+        Role::updateOrCreate(
             ['slug' => 'admin'],
             [
                 'name' => 'Admin',
                 'description' => 'Full access to the ERP system.',
-            ]
-        );
-
-        $userRole = Role::updateOrCreate(
-            ['slug' => 'user'],
-            [
-                'name' => 'User',
-                'description' => 'Standard ERP user.',
+                'permission_ids' => array_values($permissionIds),
             ]
         );
 
         /*
         |--------------------------------------------------------------------------
-        | Admin Permissions
-        |--------------------------------------------------------------------------
-        */
-
-        $adminRole->permissions()->sync(
-            collect($permissionModels)->pluck('_id')->toArray()
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | User Permissions
+        | User Role
         |--------------------------------------------------------------------------
         */
 
@@ -255,13 +244,21 @@ class RolePermissionSeeder extends Seeder
             'reports.view',
         ];
 
-        $userPermissions = Permission::whereIn(
-            'slug',
-            $userPermissionSlugs
-        )->get();
+        $userPermissionIds = [];
 
-        $userRole->permissions()->sync(
-            $userPermissions->pluck('_id')->toArray()
+        foreach ($userPermissionSlugs as $slug) {
+            if (isset($permissionIds[$slug])) {
+                $userPermissionIds[] = $permissionIds[$slug];
+            }
+        }
+
+        Role::updateOrCreate(
+            ['slug' => 'user'],
+            [
+                'name' => 'User',
+                'description' => 'Standard ERP user.',
+                'permission_ids' => $userPermissionIds,
+            ]
         );
     }
 }
