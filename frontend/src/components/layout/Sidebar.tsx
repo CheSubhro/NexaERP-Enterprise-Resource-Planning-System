@@ -19,7 +19,10 @@ function Sidebar() {
     return (
         <aside className="flex w-64 flex-col border-r border-gray-200 bg-white">
             <div className="border-b border-gray-200 px-6 py-5">
-                <h1 className="text-2xl font-bold text-gray-900">NexaERP</h1>
+                <h1 className="text-2xl font-bold">
+                    <span className="text-indigo-600">Nexa</span>
+                    <span className="text-gray-900">ERP</span>
+                </h1>
             </div>
 
             <nav className="flex-1 space-y-1 p-4">

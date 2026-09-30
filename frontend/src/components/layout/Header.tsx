@@ -10,7 +10,13 @@ function Header() {
     return (
         <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
             <div>
-                <h2 className="text-lg font-semibold text-gray-900">Welcome back</h2>
+                <h2 className="text-lg font-semibold tracking-tight">
+                    <span className="text-blue-600">NexaERP</span>
+                    <span className="text-gray-500 font-medium">
+                        {' '}
+                        Enterprise Resource Planning System
+                    </span>
+                </h2>
             </div>
 
             <div className="flex items-center gap-4">
