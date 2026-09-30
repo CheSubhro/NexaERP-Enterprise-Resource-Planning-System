@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
+import LoginPage from '../pages/auth/LoginPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
@@ -16,13 +17,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return children;
 }
 
-function LoginPage() {
-    return (
-        <div className="flex min-h-screen items-center justify-center">
-            <h1 className="text-3xl font-bold">Login</h1>
-        </div>
-    );
-}
+<Route path="/login" element={<LoginPage />} />;
 
 function DashboardPage() {
     return (
