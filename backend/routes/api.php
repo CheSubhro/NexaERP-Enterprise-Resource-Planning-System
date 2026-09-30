@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\PurchaseController;
 
 Route::prefix('auth')->group(function () {
 
@@ -124,5 +125,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/sales/{id}', [SaleController::class, 'show'])
         ->middleware('permission:sales.view');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Purchases
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/purchases', [PurchaseController::class, 'index'])
+        ->middleware('permission:purchases.view');
+
+    Route::post('/purchases', [PurchaseController::class, 'store'])
+        ->middleware('permission:purchases.create');
+
+    Route::get('/purchases/{id}', [PurchaseController::class, 'show'])
+        ->middleware('permission:purchases.view');
 
 });
