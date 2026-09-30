@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\DashboardController;
 
 Route::prefix('auth')->group(function () {
 
@@ -161,6 +162,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:expenses.update');
 
     Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])
-        ->middleware('permission:expenses.delete');    
+        ->middleware('permission:expenses.delete');  
+        
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware('permission:dashboard.view');
 
 });
