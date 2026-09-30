@@ -88,7 +88,7 @@ class UserController extends Controller
                 'max:150',
                 Rule::unique('users', 'email')->ignore($user->_id, '_id'),
             ],
-            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
+            'password' => ['sometimes', 'required', 'string', 'min:8'],
             'role_id' => ['sometimes', 'required', 'string'],
         ]);
 
