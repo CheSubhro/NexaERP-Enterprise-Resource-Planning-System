@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\SupplierController;
 
 Route::prefix('auth')->group(function () {
 
@@ -85,6 +86,27 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:customers.update');
 
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])
-        ->middleware('permission:customers.delete');    
+        ->middleware('permission:customers.delete'); 
+        
+    /*
+    |--------------------------------------------------------------------------
+    | Suppliers
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/suppliers', [SupplierController::class, 'index'])
+        ->middleware('permission:suppliers.view');
+
+    Route::post('/suppliers', [SupplierController::class, 'store'])
+        ->middleware('permission:suppliers.create');
+
+    Route::get('/suppliers/{id}', [SupplierController::class, 'show'])
+        ->middleware('permission:suppliers.view');
+
+    Route::put('/suppliers/{id}', [SupplierController::class, 'update'])
+        ->middleware('permission:suppliers.update');
+
+    Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy'])
+        ->middleware('permission:suppliers.delete');
 
 });
