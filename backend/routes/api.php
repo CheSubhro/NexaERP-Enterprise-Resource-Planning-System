@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ReportController;
 
 Route::prefix('auth')->group(function () {
 
@@ -172,5 +173,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reports
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/reports/sales', [ReportController::class, 'sales'])
+        ->middleware('permission:reports.view');
+
+    Route::get('/reports/purchases', [ReportController::class, 'purchases'])
+        ->middleware('permission:reports.view');
+
+    Route::get('/reports/expenses', [ReportController::class, 'expenses'])
+        ->middleware('permission:reports.view');
+
+    Route::get('/reports/stock', [ReportController::class, 'stock'])
+        ->middleware('permission:reports.view');    
 
 });
