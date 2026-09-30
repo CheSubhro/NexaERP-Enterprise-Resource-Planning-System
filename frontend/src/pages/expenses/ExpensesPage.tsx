@@ -94,7 +94,11 @@ function ExpensesPage() {
     };
 
     useEffect(() => {
-        loadExpenses();
+        const initializeExpenses = async () => {
+            await loadExpenses();
+        };
+
+        initializeExpenses();
     }, []);
 
     const openAddModal = () => {

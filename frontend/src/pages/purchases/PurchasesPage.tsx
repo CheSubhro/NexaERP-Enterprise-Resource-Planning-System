@@ -105,6 +105,8 @@ function PurchasesPage() {
     };
 
     useEffect(() => {
+        // Initial API data loading intentionally updates state.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadData();
     }, []);
 
