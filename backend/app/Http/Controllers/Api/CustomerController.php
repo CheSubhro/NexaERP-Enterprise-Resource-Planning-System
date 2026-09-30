@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Sale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -147,6 +148,16 @@ class CustomerController extends Controller
             ], 404);
         }
 
+        $customerId = (string) $customer->_id;
+
+        $usedInSales = Sale::where('customer_id', $customerId)->exists();
+
+        if ($usedInSales) {
+            return response()->json([
+                'message' => 'This customer cannot be deleted because they are already used in sales.',
+            ], 422);
+        }
+
         $customer->delete();
 
         return response()->json([
@@ -154,3 +165,4 @@ class CustomerController extends Controller
         ]);
     }
 }
+
