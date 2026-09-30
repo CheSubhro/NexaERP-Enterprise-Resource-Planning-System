@@ -9,6 +9,7 @@ import ProductsPage from '../pages/products/ProductsPage';
 import CategoriesPage from '../pages/categories/CategoriesPage';
 import CustomersPage from '../pages/customers/CustomersPage';
 import SuppliersPage from '../pages/suppliers/SuppliersPage';
+import SalesPage from '../pages/sales/SalesPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
@@ -42,7 +43,7 @@ export default function AppRoutes() {
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/suppliers" element={<SuppliersPage />} />
-                <Route path="/sales" element={<div>Sales</div>} />
+                <Route path="/sales" element={<SalesPage />} />
                 <Route path="/purchases" element={<div>Purchases</div>} />
                 <Route path="/expenses" element={<div>Expenses</div>} />
                 <Route path="/reports" element={<div>Reports</div>} />

@@ -1,21 +1,14 @@
 
+
 import { useEffect, useMemo, useState } from 'react'
 
-import {
-  createSale,
-  deleteSale,
-  getSales,
-  updateSale,
-} from '../../lib/api/sales'
+import { createSale, getSales } from '../../lib/api/sales'
 import { getCustomers } from '../../lib/api/customers'
 import { getProducts } from '../../lib/api/products'
 
 import type { Customer } from '../../types/customer'
 import type { Product } from '../../types/product'
-import type {
-  Sale,
-  SaleItem,
-} from '../../types/sale'
+import type { Sale, SaleItem } from '../../types/sale'
 
 interface SaleItemForm {
   product_id: string
@@ -45,11 +38,11 @@ const createEmptyItem = (): SaleItemForm => ({
   price: 0,
 })
 
-const initialForm: SaleForm = {
+const createInitialForm = (): SaleForm => ({
   customer_id: '',
   sale_date: getToday(),
   items: [createEmptyItem()],
-}
+})
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -67,10 +60,7 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
-function getErrorMessage(
-  error: unknown,
-  fallback: string,
-) {
+function getErrorMessage(error: unknown, fallback: string) {
   const response = (
     error as {
       response?: {
@@ -93,41 +83,21 @@ function SalesPage() {
   const [error, setError] = useState('')
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingSale, setEditingSale] =
-    useState<Sale | null>(null)
-
-  const [form, setForm] = useState<SaleForm>(initialForm)
+  const [form, setForm] = useState<SaleForm>(createInitialForm())
   const [saving, setSaving] = useState(false)
-
-  const [deleteSaleTarget, setDeleteSaleTarget] =
-    useState<Sale | null>(null)
-  const [deletingId, setDeletingId] =
-    useState<string | null>(null)
 
   const loadData = async () => {
     try {
       setError('')
 
-      const [
-        salesResponse,
-        customersResponse,
-        productsResponse,
-      ] = await Promise.all([
-        getSales(),
-        getCustomers(),
-        getProducts(),
-      ])
+      const [salesResponse, customersResponse, productsResponse] =
+        await Promise.all([getSales(), getCustomers(), getProducts()])
 
       setSales(salesResponse.data)
       setCustomers(customersResponse.data)
       setProducts(productsResponse.data)
     } catch (error) {
-      setError(
-        getErrorMessage(
-          error,
-          'Unable to load sales data.',
-        ),
-      )
+      setError(getErrorMessage(error, 'Unable to load sales data.'))
     } finally {
       setLoading(false)
     }
@@ -138,21 +108,11 @@ function SalesPage() {
   }, [])
 
   const customerMap = useMemo(() => {
-    return new Map(
-      customers.map((customer) => [
-        customer.id,
-        customer,
-      ]),
-    )
+    return new Map(customers.map((customer) => [customer.id, customer]))
   }, [customers])
 
   const productMap = useMemo(() => {
-    return new Map(
-      products.map((product) => [
-        product.id,
-        product,
-      ]),
-    )
+    return new Map(products.map((product) => [product.id, product]))
   }, [products])
 
   const totalAmount = useMemo(() => {
@@ -162,31 +122,7 @@ function SalesPage() {
   }, [form.items])
 
   const openAddModal = () => {
-    setEditingSale(null)
-
-    setForm({
-      customer_id: '',
-      sale_date: getToday(),
-      items: [createEmptyItem()],
-    })
-
-    setError('')
-    setIsModalOpen(true)
-  }
-
-  const openEditModal = (sale: Sale) => {
-    setEditingSale(sale)
-
-    setForm({
-      customer_id: sale.customer_id,
-      sale_date: sale.sale_date.slice(0, 10),
-      items: sale.items.map((item) => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-    })
-
+    setForm(createInitialForm())
     setError('')
     setIsModalOpen(true)
   }
@@ -197,8 +133,7 @@ function SalesPage() {
     }
 
     setIsModalOpen(false)
-    setEditingSale(null)
-    setForm(initialForm)
+    setForm(createInitialForm())
   }
 
   const handleCustomerChange = (
@@ -219,10 +154,7 @@ function SalesPage() {
     }))
   }
 
-  const handleProductChange = (
-    index: number,
-    productId: string,
-  ) => {
+  const handleProductChange = (index: number, productId: string) => {
     const selectedProduct = productMap.get(productId)
 
     setForm((current) => ({
@@ -232,37 +164,28 @@ function SalesPage() {
           ? {
               ...item,
               product_id: productId,
-              price: selectedProduct
-                ? selectedProduct.selling_price
-                : 0,
+              price: selectedProduct ? selectedProduct.selling_price : 0,
             }
           : item,
       ),
     }))
   }
 
-  const handleQuantityChange = (
-    index: number,
-    quantity: number,
-  ) => {
+  const handleQuantityChange = (index: number, quantity: number) => {
     setForm((current) => ({
       ...current,
       items: current.items.map((item, itemIndex) =>
         itemIndex === index
           ? {
               ...item,
-              quantity:
-                quantity > 0 ? quantity : 1,
+              quantity: quantity > 0 ? quantity : 1,
             }
           : item,
       ),
     }))
   }
 
-  const handlePriceChange = (
-    index: number,
-    price: number,
-  ) => {
+  const handlePriceChange = (index: number, price: number) => {
     setForm((current) => ({
       ...current,
       items: current.items.map((item, itemIndex) =>
@@ -279,10 +202,7 @@ function SalesPage() {
   const addItem = () => {
     setForm((current) => ({
       ...current,
-      items: [
-        ...current.items,
-        createEmptyItem(),
-      ],
+      items: [...current.items, createEmptyItem()],
     }))
   }
 
@@ -293,9 +213,7 @@ function SalesPage() {
 
     setForm((current) => ({
       ...current,
-      items: current.items.filter(
-        (_, itemIndex) => itemIndex !== index,
-      ),
+      items: current.items.filter((_, itemIndex) => itemIndex !== index),
     }))
   }
 
@@ -327,118 +245,41 @@ function SalesPage() {
     )
 
     if (hasInvalidItem) {
-      setError(
-        'Please select a product and enter valid quantity and price.',
-      )
+      setError('Please select a product and enter valid quantity and price.')
       return
     }
 
-    const items: SaleItem[] = form.items.map(
-      (item) => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.quantity * item.price,
-      }),
-    )
+    const items: SaleItem[] = form.items.map((item) => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.quantity * item.price,
+    }))
 
     try {
       setSaving(true)
       setError('')
 
-      if (editingSale) {
-        const response = await updateSale(
-          editingSale.id,
-          {
-            customer_id: form.customer_id,
-            sale_date: form.sale_date,
-            items,
-          },
-        )
+      const response = await createSale({
+        customer_id: form.customer_id,
+        sale_date: form.sale_date,
+        items,
+      })
 
-        setSales((current) =>
-          current.map((sale) =>
-            sale.id === editingSale.id
-              ? response.data
-              : sale,
-          ),
-        )
-      } else {
-        const response = await createSale({
-          customer_id: form.customer_id,
-          sale_date: form.sale_date,
-          items,
-        })
-
-        setSales((current) => [
-          response.data,
-          ...current,
-        ])
-      }
+      setSales((current) => [response.data, ...current])
 
       closeModal()
     } catch (error) {
-      setError(
-        getErrorMessage(
-          error,
-          'Unable to save sale.',
-        ),
-      )
+      setError(getErrorMessage(error, 'Unable to create sale.'))
     } finally {
       setSaving(false)
-    }
-  }
-
-  const openDeleteModal = (sale: Sale) => {
-    setError('')
-    setDeleteSaleTarget(sale)
-  }
-
-  const closeDeleteModal = () => {
-    if (deletingId) {
-      return
-    }
-
-    setDeleteSaleTarget(null)
-  }
-
-  const handleDelete = async () => {
-    if (!deleteSaleTarget) {
-      return
-    }
-
-    try {
-      setDeletingId(deleteSaleTarget.id)
-      setError('')
-
-      await deleteSale(deleteSaleTarget.id)
-
-      setSales((current) =>
-        current.filter(
-          (sale) =>
-            sale.id !== deleteSaleTarget.id,
-        ),
-      )
-
-      setDeleteSaleTarget(null)
-    } catch (error) {
-      setError(
-        getErrorMessage(
-          error,
-          'Unable to delete sale.',
-        ),
-      )
-    } finally {
-      setDeletingId(null)
     }
   }
 
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-sm text-gray-500">
-          Loading sales...
-        </p>
+        <p className="text-sm text-gray-500">Loading sales...</p>
       </div>
     )
   }
@@ -447,9 +288,7 @@ function SalesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Sales
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Sales</h1>
 
           <p className="mt-1 text-sm text-gray-500">
             Manage sales invoices and customer transactions
@@ -467,15 +306,13 @@ function SalesPage() {
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm font-medium text-red-600">
-            {error}
-          </p>
+          <p className="text-sm font-medium text-red-600">{error}</p>
         </div>
       )}
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px]">
+          <table className="w-full min-w-[900px]">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -499,7 +336,7 @@ function SalesPage() {
                 </th>
 
                 <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Actions
+                  Status
                 </th>
               </tr>
             </thead>
@@ -516,10 +353,7 @@ function SalesPage() {
                 </tr>
               ) : (
                 sales.map((sale) => {
-                  const customer =
-                    customerMap.get(
-                      sale.customer_id,
-                    )
+                  const customer = customerMap.get(sale.customer_id)
 
                   return (
                     <tr
@@ -534,8 +368,7 @@ function SalesPage() {
 
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium text-gray-900">
-                          {customer?.name ||
-                            sale.customer_id}
+                          {customer?.name || sale.customer_id}
                         </p>
 
                         {customer?.phone && (
@@ -548,57 +381,26 @@ function SalesPage() {
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-700">
                           {sale.items.length}{' '}
-                          {sale.items.length === 1
-                            ? 'item'
-                            : 'items'}
+                          {sale.items.length === 1 ? 'item' : 'items'}
                         </p>
                       </td>
 
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-700">
-                          {formatDate(
-                            sale.sale_date,
-                          )}
+                          {formatDate(sale.sale_date)}
                         </p>
                       </td>
 
                       <td className="px-6 py-4 text-right">
                         <p className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(
-                            sale.total_amount,
-                          )}
+                          {formatCurrency(sale.total_amount)}
                         </p>
                       </td>
 
-                      <td className="px-6 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditModal(sale)
-                            }
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openDeleteModal(sale)
-                            }
-                            disabled={
-                              deletingId ===
-                              sale.id
-                            }
-                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {deletingId ===
-                            sale.id
-                              ? 'Deleting...'
-                              : 'Delete'}
-                          </button>
-                        </div>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600">
+                          Completed
+                        </span>
                       </td>
                     </tr>
                   )
@@ -615,9 +417,7 @@ function SalesPage() {
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editingSale
-                    ? 'Edit Sale'
-                    : 'Create Sale'}
+                  Create Sale
                 </h2>
 
                 <p className="mt-1 text-xs text-gray-500">
@@ -655,9 +455,7 @@ function SalesPage() {
                     required
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
-                    <option value="">
-                      Select customer
-                    </option>
+                    <option value="">Select customer</option>
 
                     {customers.map((customer) => (
                       <option
@@ -665,9 +463,7 @@ function SalesPage() {
                         value={customer.id}
                       >
                         {customer.name}
-                        {customer.phone
-                          ? ` - ${customer.phone}`
-                          : ''}
+                        {customer.phone ? ` - ${customer.phone}` : ''}
                       </option>
                     ))}
                   </select>
@@ -740,136 +536,90 @@ function SalesPage() {
                     </thead>
 
                     <tbody className="divide-y divide-gray-100">
-                      {form.items.map(
-                        (item, index) => {
-                          const subtotal =
-                            item.quantity *
-                            item.price
+                      {form.items.map((item, index) => {
+                        const subtotal = item.quantity * item.price
 
-                          return (
-                            <tr
-                              key={`${index}-${item.product_id}`}
-                            >
-                              <td className="px-5 py-4">
-                                <select
-                                  value={
-                                    item.product_id
-                                  }
-                                  onChange={(event) =>
-                                    handleProductChange(
-                                      index,
-                                      event.target
-                                        .value,
-                                    )
-                                  }
-                                  required
-                                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                >
-                                  <option value="">
-                                    Select product
+                        return (
+                          <tr key={`${index}-${item.product_id}`}>
+                            <td className="px-5 py-4">
+                              <select
+                                value={item.product_id}
+                                onChange={(event) =>
+                                  handleProductChange(
+                                    index,
+                                    event.target.value,
+                                  )
+                                }
+                                required
+                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                              >
+                                <option value="">Select product</option>
+
+                                {products.map((product) => (
+                                  <option
+                                    key={product.id}
+                                    value={product.id}
+                                  >
+                                    {product.name} ({product.sku}) — Stock:{' '}
+                                    {product.stock}
                                   </option>
+                                ))}
+                              </select>
+                            </td>
 
-                                  {products.map(
-                                    (product) => (
-                                      <option
-                                        key={
-                                          product.id
-                                        }
-                                        value={
-                                          product.id
-                                        }
-                                      >
-                                        {product.name}{' '}
-                                        (
-                                        {
-                                          product.sku
-                                        }
-                                        )
-                                      </option>
-                                    ),
-                                  )}
-                                </select>
-                              </td>
+                            <td className="px-5 py-4">
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={item.quantity}
+                                onChange={(event) =>
+                                  handleQuantityChange(
+                                    index,
+                                    Number(event.target.value),
+                                  )
+                                }
+                                required
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                              />
+                            </td>
 
-                              <td className="px-5 py-4">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  step="1"
-                                  value={
-                                    item.quantity
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    handleQuantityChange(
-                                      index,
-                                      Number(
-                                        event
-                                          .target
-                                          .value,
-                                      ),
-                                    )
-                                  }
-                                  required
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                />
-                              </td>
+                            <td className="px-5 py-4">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.price}
+                                onChange={(event) =>
+                                  handlePriceChange(
+                                    index,
+                                    Number(event.target.value),
+                                  )
+                                }
+                                required
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                              />
+                            </td>
 
-                              <td className="px-5 py-4">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={
-                                    item.price
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    handlePriceChange(
-                                      index,
-                                      Number(
-                                        event
-                                          .target
-                                          .value,
-                                      ),
-                                    )
-                                  }
-                                  required
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                />
-                              </td>
+                            <td className="px-5 py-4 text-right">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {formatCurrency(subtotal)}
+                              </p>
+                            </td>
 
-                              <td className="px-5 py-4 text-right">
-                                <p className="text-sm font-semibold text-gray-900">
-                                  {formatCurrency(
-                                    subtotal,
-                                  )}
-                                </p>
-                              </td>
-
-                              <td className="px-5 py-4 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    removeItem(
-                                      index,
-                                    )
-                                  }
-                                  disabled={
-                                    form.items
-                                      .length === 1
-                                  }
-                                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                  Remove
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        },
-                      )}
+                            <td className="px-5 py-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => removeItem(index)}
+                                disabled={form.items.length === 1}
+                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -882,9 +632,7 @@ function SalesPage() {
                       </span>
 
                       <span className="text-xl font-bold text-gray-900">
-                        {formatCurrency(
-                          totalAmount,
-                        )}
+                        {formatCurrency(totalAmount)}
                       </span>
                     </div>
                   </div>
@@ -906,84 +654,10 @@ function SalesPage() {
                   disabled={saving}
                   className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saving
-                    ? 'Saving...'
-                    : editingSale
-                      ? 'Update Sale'
-                      : 'Create Sale'}
+                  {saving ? 'Creating...' : 'Create Sale'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {deleteSaleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Delete Sale
-              </h2>
-            </div>
-
-            <div className="px-6 py-5">
-              <p className="text-sm text-gray-600">
-                Are you sure you want to delete this sale?
-              </p>
-
-              <div className="mt-4 rounded-lg bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">
-                  {deleteSaleTarget.invoice_no}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  {customerMap.get(
-                    deleteSaleTarget.customer_id,
-                  )?.name ||
-                    deleteSaleTarget.customer_id}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  {formatCurrency(
-                    deleteSaleTarget.total_amount,
-                  )}
-                </p>
-              </div>
-
-              <p className="mt-4 text-xs text-red-500">
-                This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                disabled={
-                  deletingId ===
-                  deleteSaleTarget.id
-                }
-                className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={
-                  deletingId ===
-                  deleteSaleTarget.id
-                }
-                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deletingId ===
-                deleteSaleTarget.id
-                  ? 'Deleting...'
-                  : 'Delete Sale'}
-              </button>
-            </div>
           </div>
         </div>
       )}
