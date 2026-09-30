@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { createUser, deleteUser, getUsers, updateUser } from '../../lib/api/users';
+import { useAuth } from '../../hooks/useAuth';
 import { getRoles } from '../../lib/api/roles';
+import { createUser, deleteUser, getUsers, updateUser } from '../../lib/api/users';
 
-import type { UpdateUserRequest, User } from '../../types/user';
 import type { Role } from '../../types/role';
+import type { UpdateUserRequest, User } from '../../types/user';
 
 interface UserForm {
     name: string;
@@ -20,7 +21,7 @@ const createInitialForm = (): UserForm => ({
     role_id: '',
 });
 
-function getErrorMessage(error: unknown, fallback: string) {
+function getErrorMessage(error: unknown, fallback: string): string {
     const response = (
         error as {
             response?: {
@@ -34,8 +35,14 @@ function getErrorMessage(error: unknown, fallback: string) {
     return response?.data?.message || fallback;
 }
 
-function formatDate(value?: string) {
+function formatDate(value?: string): string {
     if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
         return '—';
     }
 
@@ -43,10 +50,12 @@ function formatDate(value?: string) {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
-    }).format(new Date(value));
+    }).format(date);
 }
 
-function UsersPage() {
+export default function UsersPage() {
+    const { user: currentUser } = useAuth();
+
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
 
@@ -64,10 +73,17 @@ function UsersPage() {
 
     const [deleting, setDeleting] = useState(false);
 
-    const currentUserId = localStorage.getItem('nexaerp_user_id');
+    /*
+     * Current logged-in user's ID comes directly
+     * from AuthContext.
+     *
+     * src/types/auth.ts User interface contains _id,
+     * so we only use _id here.
+     */
+    const currentUserId = String(currentUser?._id || '');
 
     const roleMap = useMemo(() => {
-        return new Map(roles.map((role) => [String(role._id || role.id), role.name]));
+        return new Map(roles.map((role) => [String(role._id), role.name]));
     }, [roles]);
 
     const loadData = async () => {
@@ -133,6 +149,8 @@ function UsersPage() {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        setError('');
+
         if (!form.name.trim()) {
             setError('Please enter the user name.');
             return;
@@ -160,7 +178,6 @@ function UsersPage() {
 
         try {
             setSaving(true);
-            setError('');
 
             if (editingUser) {
                 const data: UpdateUserRequest = {
@@ -233,6 +250,7 @@ function UsersPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Users</h1>
@@ -251,12 +269,14 @@ function UsersPage() {
                 </button>
             </div>
 
+            {/* Error */}
             {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
                     <p className="text-sm font-medium text-red-600">{error}</p>
                 </div>
             )}
 
+            {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <p className="text-sm font-medium text-gray-500">Total Users</p>
@@ -271,6 +291,7 @@ function UsersPage() {
                 </div>
             </div>
 
+            {/* Users Table */}
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[900px]">
@@ -310,12 +331,13 @@ function UsersPage() {
                                 </tr>
                             ) : (
                                 users.map((user) => {
-                                    const userId = String(user._id || user.id || '');
+                                    const userId = String(user._id);
 
-                                    const isCurrentUser = userId === String(currentUserId || '');
+                                    const isCurrentUser = userId === currentUserId;
 
                                     return (
                                         <tr key={userId} className="hover:bg-gray-50">
+                                            {/* Name */}
                                             <td className="px-6 py-4">
                                                 <div>
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -330,12 +352,14 @@ function UsersPage() {
                                                 </div>
                                             </td>
 
+                                            {/* Email */}
                                             <td className="px-6 py-4">
                                                 <p className="text-sm text-gray-700">
                                                     {user.email}
                                                 </p>
                                             </td>
 
+                                            {/* Role */}
                                             <td className="px-6 py-4">
                                                 <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                                                     {user.role?.name ||
@@ -344,12 +368,14 @@ function UsersPage() {
                                                 </span>
                                             </td>
 
+                                            {/* Created */}
                                             <td className="px-6 py-4">
                                                 <p className="text-sm text-gray-700">
                                                     {formatDate(user.created_at)}
                                                 </p>
                                             </td>
 
+                                            {/* Actions */}
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <button
@@ -382,9 +408,11 @@ function UsersPage() {
                 </div>
             </div>
 
+            {/* Add / Edit Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
+                        {/* Modal Header */}
                         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900">
@@ -408,7 +436,9 @@ function UsersPage() {
                             </button>
                         </div>
 
+                        {/* Form */}
                         <form onSubmit={handleSubmit} className="space-y-5 p-6">
+                            {/* Name */}
                             <div>
                                 <label
                                     htmlFor="name"
@@ -430,6 +460,7 @@ function UsersPage() {
                                 />
                             </div>
 
+                            {/* Email */}
                             <div>
                                 <label
                                     htmlFor="email"
@@ -451,6 +482,7 @@ function UsersPage() {
                                 />
                             </div>
 
+                            {/* Password */}
                             <div>
                                 <label
                                     htmlFor="password"
@@ -482,6 +514,7 @@ function UsersPage() {
                                 )}
                             </div>
 
+                            {/* Role */}
                             <div>
                                 <label
                                     htmlFor="role_id"
@@ -501,7 +534,7 @@ function UsersPage() {
                                     <option value="">Select a role</option>
 
                                     {roles.map((role) => {
-                                        const roleId = String(role._id || role.id || '');
+                                        const roleId = String(role._id);
 
                                         return (
                                             <option key={roleId} value={roleId}>
@@ -512,6 +545,7 @@ function UsersPage() {
                                 </select>
                             </div>
 
+                            {/* Modal Actions */}
                             <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
                                 <button
                                     type="button"
@@ -539,9 +573,11 @@ function UsersPage() {
                 </div>
             )}
 
+            {/* Delete Confirmation Modal */}
             {deleteUserTarget && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
                     <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
+                        {/* Header */}
                         <div className="border-b border-gray-200 px-6 py-4">
                             <h2 className="text-lg font-semibold text-gray-900">Delete User</h2>
 
@@ -550,6 +586,7 @@ function UsersPage() {
                             </p>
                         </div>
 
+                        {/* User Details */}
                         <div className="space-y-3 px-6 py-5">
                             <div className="rounded-lg bg-gray-50 p-4">
                                 <p className="text-sm font-semibold text-gray-900">
@@ -570,6 +607,7 @@ function UsersPage() {
                             <p className="text-xs text-gray-500">This action cannot be undone.</p>
                         </div>
 
+                        {/* Actions */}
                         <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
                             <button
                                 type="button"
@@ -595,5 +633,3 @@ function UsersPage() {
         </div>
     );
 }
-
-export default UsersPage;
