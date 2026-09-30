@@ -8,6 +8,7 @@ use App\Models\Purchase;
 use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PurchaseController extends Controller
@@ -41,10 +42,31 @@ class PurchaseController extends Controller
             ], 404);
         }
 
+        /*
+         * Merge duplicate products.
+         * If the same product appears multiple times,
+         * quantities are combined and the first item's price is used.
+         */
+        $groupedItems = [];
+
+        foreach ($validated['items'] as $item) {
+            $productId = $item['product_id'];
+
+            if (! isset($groupedItems[$productId])) {
+                $groupedItems[$productId] = [
+                    'product_id' => $productId,
+                    'quantity' => 0,
+                    'price' => $item['price'],
+                ];
+            }
+
+            $groupedItems[$productId]['quantity'] += $item['quantity'];
+        }
+
         $items = [];
         $totalAmount = 0;
 
-        foreach ($validated['items'] as $item) {
+        foreach ($groupedItems as $item) {
             $product = Product::find($item['product_id']);
 
             if (! $product) {
@@ -68,23 +90,33 @@ class PurchaseController extends Controller
 
         $invoiceNo = 'PUR-' . strtoupper(Str::random(8));
 
-        $purchase = Purchase::create([
-            'invoice_no' => $invoiceNo,
-            'supplier_id' => $validated['supplier_id'],
-            'items' => $items,
-            'total_amount' => $totalAmount,
-            'purchase_date' => $validated['purchase_date'] ?? now(),
-            'created_by' => $request->user()->_id,
-        ]);
+        $purchase = DB::connection('mongodb')->transaction(function () use (
+            $validated,
+            $items,
+            $totalAmount,
+            $invoiceNo,
+            $request,
+        ) {
+            $purchase = Purchase::create([
+                'invoice_no' => $invoiceNo,
+                'supplier_id' => $validated['supplier_id'],
+                'items' => $items,
+                'total_amount' => $totalAmount,
+                'purchase_date' => $validated['purchase_date'] ?? now(),
+                'created_by' => $request->user()->_id,
+            ]);
 
-        foreach ($items as $item) {
-            $product = Product::find($item['product_id']);
+            foreach ($items as $item) {
+                $product = Product::find($item['product_id']);
 
-            $product->increment(
-                'stock',
-                $item['quantity']
-            );
-        }
+                $product->increment(
+                    'stock',
+                    $item['quantity'],
+                );
+            }
+
+            return $purchase;
+        });
 
         return response()->json([
             'message' => 'Purchase created successfully.',
