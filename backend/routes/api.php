@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\PurchaseController;
+use App\Http\Controllers\Api\ExpenseController;
 
 Route::prefix('auth')->group(function () {
 
@@ -140,5 +141,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/purchases/{id}', [PurchaseController::class, 'show'])
         ->middleware('permission:purchases.view');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expenses
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/expenses', [ExpenseController::class, 'index'])
+        ->middleware('permission:expenses.view');
+
+    Route::post('/expenses', [ExpenseController::class, 'store'])
+        ->middleware('permission:expenses.create');
+
+    Route::get('/expenses/{id}', [ExpenseController::class, 'show'])
+        ->middleware('permission:expenses.view');
+
+    Route::put('/expenses/{id}', [ExpenseController::class, 'update'])
+        ->middleware('permission:expenses.update');
+
+    Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])
+        ->middleware('permission:expenses.delete');    
 
 });
