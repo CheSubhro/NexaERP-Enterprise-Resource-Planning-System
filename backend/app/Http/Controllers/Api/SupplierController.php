@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Purchase;
 use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,19 @@ class SupplierController extends Controller
             if ($emailExists) {
                 return response()->json([
                     'message' => 'A supplier with this email already exists.',
+                ], 422);
+            }
+        }
+
+        if (! empty($validated['gst_number'])) {
+            $gstExists = Supplier::where(
+                'gst_number',
+                $validated['gst_number'],
+            )->exists();
+
+            if ($gstExists) {
+                return response()->json([
+                    'message' => 'A supplier with this GST number already exists.',
                 ], 422);
             }
         }
@@ -135,6 +149,24 @@ class SupplierController extends Controller
             }
         }
 
+        if (
+            array_key_exists('gst_number', $validated)
+            && ! empty($validated['gst_number'])
+        ) {
+            $gstExists = Supplier::where(
+                'gst_number',
+                $validated['gst_number'],
+            )
+                ->where('_id', '!=', $supplier->_id)
+                ->exists();
+
+            if ($gstExists) {
+                return response()->json([
+                    'message' => 'A supplier with this GST number already exists.',
+                ], 422);
+            }
+        }
+
         $supplier->update($validated);
 
         return response()->json([
@@ -153,6 +185,19 @@ class SupplierController extends Controller
             ], 404);
         }
 
+        $supplierId = (string) $supplier->_id;
+
+        $usedInPurchases = Purchase::where(
+            'supplier_id',
+            $supplierId,
+        )->exists();
+
+        if ($usedInPurchases) {
+            return response()->json([
+                'message' => 'This supplier cannot be deleted because they are already used in purchases.',
+            ], 422);
+        }
+
         $supplier->delete();
 
         return response()->json([
@@ -160,3 +205,4 @@ class SupplierController extends Controller
         ]);
     }
 }
+

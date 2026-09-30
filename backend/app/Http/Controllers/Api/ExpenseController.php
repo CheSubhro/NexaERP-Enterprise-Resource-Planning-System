@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
+    
     public function index(): JsonResponse
     {
         $expenses = Expense::orderByDesc('expense_date')->get();
