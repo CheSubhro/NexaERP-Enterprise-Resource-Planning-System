@@ -2,6 +2,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 
 import {
+  createProduct,
   deleteProduct,
   getProducts,
   updateProduct,
@@ -22,9 +23,11 @@ function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [addingProduct, setAddingProduct] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
 
+  const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -35,9 +38,9 @@ function ProductsPage() {
     description: '',
     purchase_price: '',
     selling_price: '',
-    stock: '',
-    low_stock_threshold: '',
-    unit: '',
+    stock: '0',
+    low_stock_threshold: '5',
+    unit: 'pcs',
     status: 'active' as ProductStatus,
   })
 
@@ -57,6 +60,27 @@ function ProductsPage() {
   useEffect(() => {
     loadProducts()
   }, [])
+
+  const resetForm = () => {
+    setForm({
+      name: '',
+      sku: '',
+      category_id: '',
+      description: '',
+      purchase_price: '',
+      selling_price: '',
+      stock: '0',
+      low_stock_threshold: '5',
+      unit: 'pcs',
+      status: 'active',
+    })
+  }
+
+  const openAddModal = () => {
+    setError('')
+    resetForm()
+    setAddingProduct(true)
+  }
 
   const openEditModal = (product: Product) => {
     setError('')
@@ -94,6 +118,64 @@ function ProductsPage() {
     }))
   }
 
+  const handleCreate = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    try {
+      setCreating(true)
+      setError('')
+
+      const response = await createProduct({
+        name: form.name,
+        sku: form.sku,
+        category_id: form.category_id,
+        description: form.description,
+        purchase_price: Number(form.purchase_price),
+        selling_price: Number(form.selling_price),
+        stock: Number(form.stock),
+        low_stock_threshold: Number(form.low_stock_threshold),
+        unit: form.unit || 'pcs',
+        status: form.status,
+      })
+
+      setProducts((current) =>
+        [...current, response.data].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
+      )
+
+      setAddingProduct(false)
+      resetForm()
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error
+      ) {
+        const response = (
+          error as {
+            response?: {
+              data?: {
+                message?: string
+              }
+            }
+          }
+        ).response
+
+        setError(
+          response?.data?.message ??
+            'Unable to create product.',
+        )
+      } else {
+        setError('Unable to create product.')
+      }
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const handleUpdate = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -129,6 +211,7 @@ function ProductsPage() {
       )
 
       setEditingProduct(null)
+      resetForm()
     } catch (error: unknown) {
       if (
         typeof error === 'object' &&
@@ -215,14 +298,24 @@ function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Products
-        </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Products
+          </h1>
 
-        <p className="mt-1 text-sm text-gray-500">
-          Manage your products and inventory
-        </p>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage your products and inventory
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
+          + Add Product
+        </button>
       </div>
 
       {error && (
@@ -369,6 +462,247 @@ function ProductsPage() {
         )}
       </div>
 
+      {addingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+            <div className="border-b border-gray-200 px-6 py-5">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Add Product
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Add a new product to your inventory
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleCreate}
+              className="space-y-5 p-6"
+            >
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Product Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'name',
+                        event.target.value,
+                      )
+                    }
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    SKU
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.sku}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'sku',
+                        event.target.value,
+                      )
+                    }
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Category ID
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.category_id}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'category_id',
+                        event.target.value,
+                      )
+                    }
+                    required
+                    placeholder="Enter category ID"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Unit
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.unit}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'unit',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="pcs"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Purchase Price
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.purchase_price}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'purchase_price',
+                        event.target.value,
+                      )
+                    }
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Selling Price
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.selling_price}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'selling_price',
+                        event.target.value,
+                      )
+                    }
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Stock
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.stock}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'stock',
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Low Stock Threshold
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.low_stock_threshold}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'low_stock_threshold',
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Status
+                  </label>
+
+                  <select
+                    value={form.status}
+                    onChange={(event) =>
+                      handleFormChange(
+                        'status',
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Description
+                </label>
+
+                <textarea
+                  value={form.description}
+                  onChange={(event) =>
+                    handleFormChange(
+                      'description',
+                      event.target.value,
+                    )
+                  }
+                  rows={4}
+                  className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAddingProduct(false)
+                  }
+                  disabled={creating}
+                  className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {creating
+                    ? 'Creating...'
+                    : 'Create Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
@@ -388,15 +722,11 @@ function ProductsPage() {
             >
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="product-name"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Product Name
                   </label>
 
                   <input
-                    id="product-name"
                     type="text"
                     value={form.name}
                     onChange={(event) =>
@@ -411,15 +741,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="product-sku"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     SKU
                   </label>
 
                   <input
-                    id="product-sku"
                     type="text"
                     value={form.sku}
                     onChange={(event) =>
@@ -434,15 +760,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="product-category"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Category ID
                   </label>
 
                   <input
-                    id="product-category"
                     type="text"
                     value={form.category_id}
                     onChange={(event) =>
@@ -457,15 +779,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="product-unit"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Unit
                   </label>
 
                   <input
-                    id="product-unit"
                     type="text"
                     value={form.unit}
                     onChange={(event) =>
@@ -479,15 +797,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="purchase-price"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Purchase Price
                   </label>
 
                   <input
-                    id="purchase-price"
                     type="number"
                     min="0"
                     step="0.01"
@@ -504,15 +818,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="selling-price"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Selling Price
                   </label>
 
                   <input
-                    id="selling-price"
                     type="number"
                     min="0"
                     step="0.01"
@@ -529,15 +839,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="product-stock"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Stock
                   </label>
 
                   <input
-                    id="product-stock"
                     type="number"
                     min="0"
                     value={form.stock}
@@ -552,15 +858,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="low-stock-threshold"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Low Stock Threshold
                   </label>
 
                   <input
-                    id="low-stock-threshold"
                     type="number"
                     min="0"
                     value={form.low_stock_threshold}
@@ -575,15 +877,11 @@ function ProductsPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="product-status"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Status
                   </label>
 
                   <select
-                    id="product-status"
                     value={form.status}
                     onChange={(event) =>
                       handleFormChange(
@@ -600,15 +898,11 @@ function ProductsPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="product-description"
-                  className="mb-2 block text-sm font-medium text-gray-700"
-                >
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   Description
                 </label>
 
                 <textarea
-                  id="product-description"
                   value={form.description}
                   onChange={(event) =>
                     handleFormChange(
@@ -636,7 +930,9 @@ function ProductsPage() {
                   disabled={saving}
                   className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving ? 'Updating...' : 'Update Product'}
+                  {saving
+                    ? 'Updating...'
+                    : 'Update Product'}
                 </button>
               </div>
             </form>
@@ -677,7 +973,9 @@ function ProductsPage() {
                 disabled={deleting}
                 className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {deleting ? 'Deleting...' : 'Delete Product'}
+                {deleting
+                  ? 'Deleting...'
+                  : 'Delete Product'}
               </button>
             </div>
           </div>

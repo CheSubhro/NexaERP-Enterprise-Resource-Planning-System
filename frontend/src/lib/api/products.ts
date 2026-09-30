@@ -2,6 +2,20 @@ import api from './axios'
 
 import type { Product, ProductsResponse } from '../../types/product'
 
+export const createProduct = async (
+  data: Omit<
+    Product,
+    'id' | 'created_by' | 'created_at' | 'updated_at'
+  >,
+): Promise<{ message: string; data: Product }> => {
+  const response = await api.post<{ message: string; data: Product }>(
+    '/products',
+    data,
+  )
+
+  return response.data
+}
+
 export const getProducts = async (): Promise<ProductsResponse> => {
   const response = await api.get<ProductsResponse>('/products')
 
