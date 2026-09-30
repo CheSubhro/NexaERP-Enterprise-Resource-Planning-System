@@ -110,8 +110,10 @@ class UserController extends Controller
         ]);
     }
 
-    public function destroy(string $id): JsonResponse
-    {
+    public function destroy(
+        Request $request,
+        string $id
+    ): JsonResponse {
         $user = User::find($id);
 
         if (! $user) {
