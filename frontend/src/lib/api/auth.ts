@@ -1,5 +1,7 @@
 import api from './axios'
+
 import type {
+  CurrentUserResponse,
   LoginRequest,
   LoginResponse,
   User,
@@ -17,9 +19,21 @@ export const login = async (
 }
 
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await api.get<{ data: User }>('/auth/user')
+  const response = await api.get<CurrentUserResponse>(
+    '/auth/user',
+  )
 
-  return response.data.data
+  const { user, role, permissions } = response.data
+
+  return {
+    ...user,
+    role: role
+      ? {
+          ...role,
+          permissions,
+        }
+      : undefined,
+  }
 }
 
 export const logout = async (): Promise<void> => {

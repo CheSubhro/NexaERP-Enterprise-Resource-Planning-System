@@ -1,9 +1,17 @@
+export interface Permission {
+  name: string
+  slug: string
+  module: string
+}
+
 export interface Role {
-  _id: string
+  _id?: string
+  id?: string
   name: string
   slug: string
   description?: string
-  permission_ids: string[]
+  permission_ids?: string[]
+  permissions?: Permission[]
 }
 
 export interface User {
@@ -25,4 +33,10 @@ export interface LoginResponse {
   message: string
   token: string
   user: User
+}
+
+export interface CurrentUserResponse {
+  user: User
+  role: Role | null
+  permissions: Permission[]
 }
