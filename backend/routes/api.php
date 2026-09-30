@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\CustomerController;
 
 Route::prefix('auth')->group(function () {
 
@@ -64,5 +65,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/products/{id}', [ProductController::class, 'destroy'])
         ->middleware('permission:products.delete');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customers
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/customers', [CustomerController::class, 'index'])
+        ->middleware('permission:customers.view');
+
+    Route::post('/customers', [CustomerController::class, 'store'])
+        ->middleware('permission:customers.create');
+
+    Route::get('/customers/{id}', [CustomerController::class, 'show'])
+        ->middleware('permission:customers.view');
+
+    Route::put('/customers/{id}', [CustomerController::class, 'update'])
+        ->middleware('permission:customers.update');
+
+    Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])
+        ->middleware('permission:customers.delete');    
 
 });
