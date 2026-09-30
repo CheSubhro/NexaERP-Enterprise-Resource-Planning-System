@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 import LoginPage from '../pages/auth/LoginPage';
+import DashboardLayout from '../layouts/DashboardLayout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
@@ -33,13 +34,36 @@ export default function AppRoutes() {
             <Route path="/login" element={<LoginPage />} />
 
             <Route
-                path="/dashboard"
                 element={
                     <ProtectedRoute>
-                        <DashboardPage />
+                        <DashboardLayout />
                     </ProtectedRoute>
                 }
-            />
+            >
+                <Route path="/dashboard" element={<DashboardPage />} />
+
+                <Route path="/products" element={<div>Products</div>} />
+
+                <Route path="/categories" element={<div>Categories</div>} />
+
+                <Route path="/customers" element={<div>Customers</div>} />
+
+                <Route path="/suppliers" element={<div>Suppliers</div>} />
+
+                <Route path="/sales" element={<div>Sales</div>} />
+
+                <Route path="/purchases" element={<div>Purchases</div>} />
+
+                <Route path="/expenses" element={<div>Expenses</div>} />
+
+                <Route path="/reports" element={<div>Reports</div>} />
+
+                <Route path="/users" element={<div>Users</div>} />
+
+                <Route path="/roles" element={<div>Roles & Permissions</div>} />
+
+                <Route path="/settings" element={<div>Settings</div>} />
+            </Route>
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
