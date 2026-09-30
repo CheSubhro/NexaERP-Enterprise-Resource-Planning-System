@@ -190,6 +190,12 @@ class RolePermissionSeeder extends Seeder
                 'slug' => 'roles.manage',
                 'module' => 'roles',
             ],
+            [
+                'name' => 'Manage Settings',
+                'slug' => 'settings.manage',
+                'module' => 'settings',
+                'description' => 'Manage application and business settings',
+            ],
         ];
 
         /*

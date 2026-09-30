@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SettingController;
 
 Route::prefix('auth')->group(function () {
 
@@ -234,5 +235,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/permissions', [RoleController::class, 'permissions'])
         ->middleware('permission:roles.manage');
+
+    // Settings
+    Route::get('/settings', [SettingController::class, 'show'])
+        ->middleware('permission:settings.manage');
+
+    Route::put('/settings', [SettingController::class, 'update'])
+        ->middleware('permission:settings.manage');    
 
 });
