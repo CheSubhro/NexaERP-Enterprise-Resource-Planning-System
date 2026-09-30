@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '../../hooks/useAuth';
-import { getRoles } from '../../lib/api/roles';
+import { getRoleOptions } from '../../lib/api/roles';
 import { createUser, deleteUser, getUsers, updateUser } from '../../lib/api/users';
 
 import type { Role } from '../../types/role';
@@ -91,8 +91,10 @@ export default function UsersPage() {
             setLoading(true);
             setError('');
 
-            const [usersResponse, rolesResponse] = await Promise.all([getUsers(), getRoles()]);
-
+            const [usersResponse, rolesResponse] = await Promise.all([
+                getUsers(),
+                getRoleOptions(),
+            ]);
             setUsers(usersResponse.data);
             setRoles(rolesResponse.data);
         } catch (error) {

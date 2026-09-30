@@ -218,11 +218,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Roles & Permissions
 
+    Route::get('/role-options', [RoleController::class, 'options']); 
+    
     Route::get('/roles', [RoleController::class, 'index'])
         ->middleware('permission:roles.manage');
 
     Route::post('/roles', [RoleController::class, 'store'])
         ->middleware('permission:roles.manage');
+       
 
     Route::get('/roles/{id}', [RoleController::class, 'show'])
         ->middleware('permission:roles.manage');

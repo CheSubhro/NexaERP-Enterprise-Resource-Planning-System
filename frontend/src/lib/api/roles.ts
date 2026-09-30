@@ -31,6 +31,17 @@ export const getRoles = async (): Promise<RolesResponse> => {
   return response.data
 }
 
+export interface RoleOptionsResponse {
+  message: string
+  data: Role[]
+}
+
+export const getRoleOptions = async (): Promise<RoleOptionsResponse> => {
+  const response = await api.get<RoleOptionsResponse>('/role-options')
+
+  return response.data
+}
+
 export const createRole = async (
   data: CreateRoleRequest,
 ): Promise<{ message: string; data: Role }> => {

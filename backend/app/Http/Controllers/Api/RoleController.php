@@ -161,6 +161,20 @@ class RoleController extends Controller
         ]);
     }
 
+    public function options(): JsonResponse
+    {
+        $roles = Role::orderBy('name')
+            ->get([
+                '_id',
+                'name',
+                'slug',
+            ]);
+
+        return response()->json([
+            'message' => 'Role options retrieved successfully.',
+            'data' => $roles,
+        ]);
+    }
     public function permissions(): JsonResponse
     {
         $permissions = Permission::orderBy('module')
