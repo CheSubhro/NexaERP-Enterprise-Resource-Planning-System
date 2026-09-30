@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\RoleController;
 
 Route::prefix('auth')->group(function () {
 
@@ -213,5 +214,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/users/{id}', [UserController::class, 'destroy'])
         ->middleware('permission:users.delete');
+
+    // Roles & Permissions
+
+    Route::get('/roles', [RoleController::class, 'index'])
+        ->middleware('permission:roles.manage');
+
+    Route::post('/roles', [RoleController::class, 'store'])
+        ->middleware('permission:roles.manage');
+
+    Route::get('/roles/{id}', [RoleController::class, 'show'])
+        ->middleware('permission:roles.manage');
+
+    Route::put('/roles/{id}', [RoleController::class, 'update'])
+        ->middleware('permission:roles.manage');
+
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])
+        ->middleware('permission:roles.manage');
+
+    Route::get('/permissions', [RoleController::class, 'permissions'])
+        ->middleware('permission:roles.manage');
 
 });
