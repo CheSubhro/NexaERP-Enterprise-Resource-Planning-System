@@ -7,6 +7,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import DashboardPage from '../pages/dashboard/DashboardPage';
 import ProductsPage from '../pages/products/ProductsPage';
 import CategoriesPage from '../pages/categories/CategoriesPage';
+import CustomersPage from '../pages/customers/CustomersPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
@@ -38,7 +39,7 @@ export default function AppRoutes() {
 
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
-                <Route path="/customers" element={<div>Customers</div>} />
+                <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/suppliers" element={<div>Suppliers</div>} />
                 <Route path="/sales" element={<div>Sales</div>} />
                 <Route path="/purchases" element={<div>Purchases</div>} />
