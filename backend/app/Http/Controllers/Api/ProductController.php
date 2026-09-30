@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\Purchase;
+use App\Models\Sale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -34,6 +36,14 @@ class ProductController extends Controller
             'unit' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', 'in:active,inactive'],
         ]);
+
+        $category = Category::find($validated['category_id']);
+
+        if (! $category) {
+            return response()->json([
+                'message' => 'Category not found.',
+            ], 404);
+        }
 
         $skuExists = Product::where('sku', $validated['sku'])->exists();
 
@@ -102,6 +112,16 @@ class ProductController extends Controller
             'status' => ['sometimes', 'in:active,inactive'],
         ]);
 
+        if (isset($validated['category_id'])) {
+            $category = Category::find($validated['category_id']);
+
+            if (! $category) {
+                return response()->json([
+                    'message' => 'Category not found.',
+                ], 404);
+            }
+        }
+
         if (isset($validated['sku'])) {
             $skuExists = Product::where('sku', $validated['sku'])
                 ->where('_id', '!=', $product->_id)
@@ -132,6 +152,18 @@ class ProductController extends Controller
             ], 404);
         }
 
+        $productId = (string) $product->_id;
+
+        $usedInSales = Sale::where('items.product_id', $productId)->exists();
+
+        $usedInPurchases = Purchase::where('items.product_id', $productId)->exists();
+
+        if ($usedInSales || $usedInPurchases) {
+            return response()->json([
+                'message' => 'This product cannot be deleted because it is already used in sales or purchases.',
+            ], 422);
+        }
+
         $product->delete();
 
         return response()->json([
@@ -139,3 +171,4 @@ class ProductController extends Controller
         ]);
     }
 }
+
