@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\SaleController;
 
 Route::prefix('auth')->group(function () {
 
@@ -108,5 +109,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy'])
         ->middleware('permission:suppliers.delete');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sales
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/sales', [SaleController::class, 'index'])
+        ->middleware('permission:sales.view');
+
+    Route::post('/sales', [SaleController::class, 'store'])
+        ->middleware('permission:sales.create');
+
+    Route::get('/sales/{id}', [SaleController::class, 'show'])
+        ->middleware('permission:sales.view');
 
 });
