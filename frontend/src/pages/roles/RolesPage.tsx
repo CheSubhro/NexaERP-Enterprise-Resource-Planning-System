@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   createRole,
@@ -7,38 +7,38 @@ import {
   getPermissions,
   getRoles,
   updateRole,
-} from '../../lib/api/roles';
+} from '../../lib/api/roles'
 
-import type { Role, RolePermission } from '../../types/role';
+import type { Role, RolePermission } from '../../types/role'
 
 interface RoleForm {
-  name: string;
-  slug: string;
-  description: string;
-  permission_ids: string[];
+  name: string
+  slug: string
+  description: string
+  permission_ids: string[]
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 10
 
 const createInitialForm = (): RoleForm => ({
   name: '',
   slug: '',
   description: '',
   permission_ids: [],
-});
+})
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const response = (
     error as {
       response?: {
         data?: {
-          message?: string;
-        };
-      };
+          message?: string
+        }
+      }
     }
-  ).response;
+  ).response
 
-  return response?.data?.message || fallback;
+  return response?.data?.message || fallback
 }
 
 function createSlug(value: string): string {
@@ -47,73 +47,77 @@ function createSlug(value: string): string {
     .trim()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+    .replace(/-+/g, '-')
+}
+
+function getRoleId(role: Role): string {
+  return String(role.id || role._id || '')
 }
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<RolePermission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [form, setForm] = useState<RoleForm>(createInitialForm());
-  const [saving, setSaving] = useState(false);
-
-  const [deleteRoleTarget, setDeleteRoleTarget] = useState<Role | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const [search, setSearch] = useState('');
-  const [moduleFilter, setModuleFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [roles, setRoles] = useState<Role[]>([])
+  const [permissions, setPermissions] = useState<RolePermission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const [form, setForm] = useState<RoleForm>(createInitialForm())
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState<Role | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [moduleFilter, setModuleFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [saving, setSaving] = useState(false)
 
   const permissionGroups = useMemo(() => {
-    const groups = new Map<string, RolePermission[]>();
+    const groups = new Map<string, RolePermission[]>()
 
     permissions.forEach((permission) => {
-      const moduleName = permission.module || 'Other';
-      const existing = groups.get(moduleName) || [];
+      const moduleName = permission.module || 'Other'
+      const existing = groups.get(moduleName) || []
 
-      groups.set(moduleName, [...existing, permission]);
-    });
+      groups.set(moduleName, [...existing, permission])
+    })
 
     return Array.from(groups.entries()).sort(([moduleA], [moduleB]) =>
       moduleA.localeCompare(moduleB),
-    );
-  }, [permissions]);
+    )
+  }, [permissions])
 
   const moduleOptions = useMemo(() => {
-    return permissionGroups.map(([moduleName]) => moduleName);
-  }, [permissionGroups]);
+    return permissionGroups.map(([moduleName]) => moduleName)
+  }, [permissionGroups])
 
   const loadData = async () => {
     try {
-      setLoading(true);
-      setError('');
+      setLoading(true)
+      setError('')
 
       const [rolesResponse, permissionsResponse] = await Promise.all([
         getRoles(),
         getPermissions(),
-      ]);
+      ])
 
-      setRoles(rolesResponse.data);
-      setPermissions(permissionsResponse.data);
+      setRoles(rolesResponse.data)
+      setPermissions(permissionsResponse.data)
     } catch (error) {
       setError(
-        getErrorMessage(error, 'Unable to load roles and permissions.'),
-      );
+        getErrorMessage(
+          error,
+          'Unable to load roles and permissions.',
+        ),
+      )
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
 
   const getRolePermissionModules = (role: Role): string[] => {
-    const rolePermissionIds = role.permission_ids || [];
+    const rolePermissionIds = role.permission_ids || []
 
     return Array.from(
       new Set(
@@ -123,11 +127,11 @@ export default function RolesPage() {
           )
           .map((permission) => permission.module || 'Other'),
       ),
-    );
-  };
+    )
+  }
 
   const filteredRoles = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+    const searchValue = search.trim().toLowerCase()
 
     return roles.filter((role) => {
       const searchableText = [
@@ -137,125 +141,141 @@ export default function RolesPage() {
       ]
         .filter(Boolean)
         .join(' ')
-        .toLowerCase();
+        .toLowerCase()
 
       const matchesSearch =
-        !searchValue || searchableText.includes(searchValue);
+        !searchValue || searchableText.includes(searchValue)
 
       if (!moduleFilter) {
-        return matchesSearch;
+        return matchesSearch
       }
 
-      const rolePermissionIds = role.permission_ids || [];
+      const rolePermissionIds = role.permission_ids || []
 
       const matchesModule = permissions.some(
         (permission) =>
           permission.module === moduleFilter &&
           rolePermissionIds.includes(permission.id),
-      );
+      )
 
-      return matchesSearch && matchesModule;
-    });
-  }, [roles, permissions, search, moduleFilter]);
+      return matchesSearch && matchesModule
+    })
+  }, [roles, permissions, search, moduleFilter])
 
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRoles.length / ITEMS_PER_PAGE),
-  );
+  )
 
-  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const safeCurrentPage = Math.min(currentPage, totalPages)
 
   const paginatedRoles = useMemo(() => {
-    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex =
+      (safeCurrentPage - 1) * ITEMS_PER_PAGE
 
-    return filteredRoles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredRoles, safeCurrentPage]);
+    return filteredRoles.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE,
+    )
+  }, [filteredRoles, safeCurrentPage])
 
   const startItem =
     filteredRoles.length === 0
       ? 0
-      : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1
 
   const endItem = Math.min(
     safeCurrentPage * ITEMS_PER_PAGE,
     filteredRoles.length,
-  );
+  )
 
   const openAddModal = () => {
-    setEditingRole(null);
-    setForm(createInitialForm());
-    setError('');
-    setIsModalOpen(true);
-  };
+    setEditingRole(null)
+    setForm(createInitialForm())
+    setError('')
+    setIsModalOpen(true)
+  }
 
   const openEditModal = (role: Role) => {
-    setEditingRole(role);
+    setEditingRole(role)
 
     setForm({
       name: role.name,
       slug: role.slug,
       description: role.description || '',
       permission_ids: role.permission_ids || [],
-    });
+    })
 
-    setError('');
-    setIsModalOpen(true);
-  };
+    setError('')
+    setIsModalOpen(true)
+  }
 
   const closeModal = () => {
     if (saving) {
-      return;
+      return
     }
 
-    setIsModalOpen(false);
-    setEditingRole(null);
-    setForm(createInitialForm());
-  };
+    setIsModalOpen(false)
+    setEditingRole(null)
+    setForm(createInitialForm())
+  }
 
   const handleNameChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const name = event.target.value;
+    const name = event.target.value
 
     setForm((current) => ({
       ...current,
       name,
-      slug: editingRole ? current.slug : createSlug(name),
-    }));
-  };
+      slug: editingRole
+        ? current.slug
+        : createSlug(name),
+    }))
+  }
 
   const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement
+    >,
   ) => {
-    const { name, value } = event.target;
+    const { name, value } = event.target
 
     setForm((current) => ({
       ...current,
       [name]: value,
-    }));
-  };
+    }))
+  }
 
   const togglePermission = (permissionId: string) => {
     setForm((current) => {
-      const exists = current.permission_ids.includes(permissionId);
+      const exists =
+        current.permission_ids.includes(permissionId)
 
       return {
         ...current,
         permission_ids: exists
-          ? current.permission_ids.filter((id) => id !== permissionId)
-          : [...current.permission_ids, permissionId],
-      };
-    });
-  };
+          ? current.permission_ids.filter(
+              (id) => id !== permissionId,
+            )
+          : [
+              ...current.permission_ids,
+              permissionId,
+            ],
+      }
+    })
+  }
 
-  const toggleModule = (modulePermissions: RolePermission[]) => {
+  const toggleModule = (
+    modulePermissions: RolePermission[],
+  ) => {
     const moduleIds = modulePermissions.map(
       (permission) => permission.id,
-    );
+    )
 
     const allSelected = moduleIds.every((id) =>
       form.permission_ids.includes(id),
-    );
+    )
 
     setForm((current) => ({
       ...current,
@@ -264,56 +284,81 @@ export default function RolesPage() {
             (id) => !moduleIds.includes(id),
           )
         : Array.from(
-            new Set([...current.permission_ids, ...moduleIds]),
+            new Set([
+              ...current.permission_ids,
+              ...moduleIds,
+            ]),
           ),
-    }));
-  };
+    }))
+  }
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
-    event.preventDefault();
-    setError('');
+    event.preventDefault()
+    setError('')
 
     if (!form.name.trim()) {
-      setError('Please enter the role name.');
-      return;
+      setError('Please enter the role name.')
+      return
     }
 
     if (!form.slug.trim()) {
-      setError('Please enter the role slug.');
-      return;
+      setError('Please enter the role slug.')
+      return
     }
 
     try {
-      setSaving(true);
+      setSaving(true)
+
+      const permissionIds = form.permission_ids
+        .filter(Boolean)
+        .map(String)
 
       if (editingRole) {
-        const response = await updateRole(editingRole._id, {
-          name: form.name.trim(),
-          slug: form.slug.trim(),
-          description: form.description.trim() || null,
-          permission_ids: form.permission_ids,
-        });
+        const editingRoleId = getRoleId(editingRole)
+
+        if (!editingRoleId) {
+          setError('Role ID is missing.')
+          return
+        }
+
+        const response = await updateRole(
+          editingRoleId,
+          {
+            name: form.name.trim(),
+            slug: form.slug.trim(),
+            description:
+              form.description.trim() || null,
+            permission_ids: permissionIds,
+          },
+        )
 
         setRoles((current) =>
           current.map((role) =>
-            role._id === editingRole._id ? response.data : role,
+            getRoleId(role) === editingRoleId
+              ? response.data
+              : role,
           ),
-        );
+        )
       } else {
         const response = await createRole({
           name: form.name.trim(),
           slug: form.slug.trim(),
-          description: form.description.trim() || undefined,
-          permission_ids: form.permission_ids,
-        });
+          description:
+            form.description.trim() || undefined,
+          permission_ids: permissionIds,
+        })
 
-        setRoles((current) => [...current, response.data]);
-        setCurrentPage(1);
+        setRoles((current) => [
+          ...current,
+          response.data,
+        ])
+
+        setCurrentPage(1)
       }
 
-      closeModal();
+      closeModal()
     } catch (error) {
       setError(
         getErrorMessage(
@@ -322,52 +367,66 @@ export default function RolesPage() {
             ? 'Unable to update role.'
             : 'Unable to create role.',
         ),
-      );
+      )
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleDelete = async () => {
     if (!deleteRoleTarget) {
-      return;
+      return
+    }
+
+    const deleteRoleId = getRoleId(deleteRoleTarget)
+
+    if (!deleteRoleId) {
+      setError('Role ID is missing.')
+      return
     }
 
     try {
-      setDeleting(true);
-      setError('');
+      setDeleting(true)
+      setError('')
 
-      await deleteRole(deleteRoleTarget._id);
+      await deleteRole(deleteRoleId)
 
       setRoles((current) =>
         current.filter(
-          (role) => role._id !== deleteRoleTarget._id,
+          (role) => getRoleId(role) !== deleteRoleId,
         ),
-      );
+      )
 
-      setDeleteRoleTarget(null);
+      setDeleteRoleTarget(null)
     } catch (error) {
-      setError(getErrorMessage(error, 'Unable to delete role.'));
+      setError(
+        getErrorMessage(
+          error,
+          'Unable to delete role.',
+        ),
+      )
     } finally {
-      setDeleting(false);
+      setDeleting(false)
     }
-  };
+  }
 
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  };
+    setSearch(value)
+    setCurrentPage(1)
+  }
 
-  const handleModuleFilterChange = (value: string) => {
-    setModuleFilter(value);
-    setCurrentPage(1);
-  };
+  const handleModuleFilterChange = (
+    value: string,
+  ) => {
+    setModuleFilter(value)
+    setCurrentPage(1)
+  }
 
   const clearFilters = () => {
-    setSearch('');
-    setModuleFilter('');
-    setCurrentPage(1);
-  };
+    setSearch('')
+    setModuleFilter('')
+    setCurrentPage(1)
+  }
 
   if (loading) {
     return (
@@ -376,7 +435,7 @@ export default function RolesPage() {
           Loading roles and permissions...
         </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -405,7 +464,9 @@ export default function RolesPage() {
       {/* Error */}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm font-medium text-red-600">{error}</p>
+          <p className="text-sm font-medium text-red-600">
+            {error}
+          </p>
         </div>
       )}
 
@@ -474,7 +535,10 @@ export default function RolesPage() {
               <option value="">All Modules</option>
 
               {moduleOptions.map((moduleName) => (
-                <option key={moduleName} value={moduleName}>
+                <option
+                  key={moduleName}
+                  value={moduleName}
+                >
                   {moduleName}
                 </option>
               ))}
@@ -484,8 +548,8 @@ export default function RolesPage() {
 
         <div className="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
-            Showing {startItem} to {endItem} of {filteredRoles.length}{' '}
-            roles
+            Showing {startItem} to {endItem} of{' '}
+            {filteredRoles.length} roles
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -571,61 +635,67 @@ export default function RolesPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedRoles.map((role) => (
-                  <tr
-                    key={role._id}
-                    className="hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {role.name}
-                      </p>
-                    </td>
+                paginatedRoles.map((role) => {
+                  const roleId = getRoleId(role)
 
-                    <td className="px-6 py-4">
-                      <span className="rounded-md bg-gray-100 px-2 py-1 font-mono text-xs text-gray-600">
-                        {role.slug}
-                      </span>
-                    </td>
+                  return (
+                    <tr
+                      key={roleId}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {role.name}
+                        </p>
+                      </td>
 
-                    <td className="max-w-xs px-6 py-4">
-                      <p className="truncate text-sm text-gray-600">
-                        {role.description || '—'}
-                      </p>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600">
-                          {role.permission_ids?.length || 0}{' '}
-                          permissions
+                      <td className="px-6 py-4">
+                        <span className="rounded-md bg-gray-100 px-2 py-1 font-mono text-xs text-gray-600">
+                          {role.slug}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(role)}
-                          className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
-                        >
-                          Edit
-                        </button>
+                      <td className="max-w-xs px-6 py-4">
+                        <p className="truncate text-sm text-gray-600">
+                          {role.description || '—'}
+                        </p>
+                      </td>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDeleteRoleTarget(role)
-                          }
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600">
+                            {role.permission_ids?.length || 0}{' '}
+                            permissions
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEditModal(role)
+                            }
+                            className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteRoleTarget(role)
+                            }
+                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -636,7 +706,6 @@ export default function RolesPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl">
-            {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
@@ -749,23 +818,26 @@ export default function RolesPage() {
                 <div className="space-y-4">
                   {permissionGroups.map(
                     ([moduleName, modulePermissions]) => {
-                      const moduleIds = modulePermissions.map(
-                        (permission) => permission.id,
-                      );
+                      const moduleIds =
+                        modulePermissions.map(
+                          (permission) =>
+                            permission.id,
+                        )
 
-                      const selectedCount = moduleIds.filter((id) =>
-                        form.permission_ids.includes(id),
-                      ).length;
+                      const selectedCount =
+                        moduleIds.filter((id) =>
+                          form.permission_ids.includes(id),
+                        ).length
 
                       const allSelected =
-                        selectedCount === moduleIds.length;
+                        moduleIds.length > 0 &&
+                        selectedCount === moduleIds.length
 
                       return (
                         <div
                           key={moduleName}
                           className="rounded-xl border border-gray-200"
                         >
-                          {/* Module Header */}
                           <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
                             <div>
                               <p className="text-sm font-semibold capitalize text-gray-900">
@@ -774,14 +846,17 @@ export default function RolesPage() {
 
                               <p className="mt-0.5 text-xs text-gray-500">
                                 {selectedCount}/
-                                {modulePermissions.length} selected
+                                {modulePermissions.length}{' '}
+                                selected
                               </p>
                             </div>
 
                             <button
                               type="button"
                               onClick={() =>
-                                toggleModule(modulePermissions)
+                                toggleModule(
+                                  modulePermissions,
+                                )
                               }
                               className="text-xs font-medium text-blue-600 hover:text-blue-700"
                             >
@@ -791,14 +866,13 @@ export default function RolesPage() {
                             </button>
                           </div>
 
-                          {/* Permissions */}
                           <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
                             {modulePermissions.map(
                               (permission) => {
                                 const checked =
                                   form.permission_ids.includes(
                                     permission.id,
-                                  );
+                                  )
 
                                 return (
                                   <label
@@ -826,12 +900,12 @@ export default function RolesPage() {
                                       </p>
                                     </div>
                                   </label>
-                                );
+                                )
                               },
                             )}
                           </div>
                         </div>
-                      );
+                      )
                     },
                   )}
                 </div>
@@ -891,15 +965,17 @@ export default function RolesPage() {
               </div>
 
               <p className="text-xs text-gray-500">
-                If users are assigned to this role, the backend will
-                prevent deletion.
+                If users are assigned to this role, the backend
+                will prevent deletion.
               </p>
             </div>
 
             <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
               <button
                 type="button"
-                onClick={() => setDeleteRoleTarget(null)}
+                onClick={() =>
+                  setDeleteRoleTarget(null)
+                }
                 disabled={deleting}
                 className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
@@ -912,13 +988,15 @@ export default function RolesPage() {
                 disabled={deleting}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {deleting ? 'Deleting...' : 'Delete Role'}
+                {deleting
+                  ? 'Deleting...'
+                  : 'Delete Role'}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }
 
