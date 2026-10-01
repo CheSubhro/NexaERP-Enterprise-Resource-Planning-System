@@ -1,26 +1,15 @@
-export interface UserRole {
-  id?: string
-  _id?: string
-  name: string
-  slug: string
-  description?: string
-  permission_ids?: string[]
-}
+
+import type { Role } from './role'
 
 export interface User {
-  id?: string
-  _id: string
+  id: string
+  _id?: string
   name: string
   email: string
   role_id: string
-  role?: UserRole | null
+  role?: Role
   created_at?: string
   updated_at?: string
-}
-
-export interface UsersResponse {
-  message: string
-  data: User[]
 }
 
 export interface CreateUserRequest {
@@ -36,3 +25,9 @@ export interface UpdateUserRequest {
   password?: string
   role_id?: string
 }
+
+export interface UsersResponse {
+  message: string
+  data: User[]
+}
+

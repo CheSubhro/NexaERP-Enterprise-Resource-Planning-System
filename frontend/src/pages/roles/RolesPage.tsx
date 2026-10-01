@@ -119,7 +119,7 @@ export default function RolesPage() {
       new Set(
         permissions
           .filter((permission) =>
-            rolePermissionIds.includes(permission._id),
+            rolePermissionIds.includes(permission.id),
           )
           .map((permission) => permission.module || 'Other'),
       ),
@@ -151,7 +151,7 @@ export default function RolesPage() {
       const matchesModule = permissions.some(
         (permission) =>
           permission.module === moduleFilter &&
-          rolePermissionIds.includes(permission._id),
+          rolePermissionIds.includes(permission.id),
       );
 
       return matchesSearch && matchesModule;
@@ -250,7 +250,7 @@ export default function RolesPage() {
 
   const toggleModule = (modulePermissions: RolePermission[]) => {
     const moduleIds = modulePermissions.map(
-      (permission) => permission._id,
+      (permission) => permission.id,
     );
 
     const allSelected = moduleIds.every((id) =>
@@ -750,7 +750,7 @@ export default function RolesPage() {
                   {permissionGroups.map(
                     ([moduleName, modulePermissions]) => {
                       const moduleIds = modulePermissions.map(
-                        (permission) => permission._id,
+                        (permission) => permission.id,
                       );
 
                       const selectedCount = moduleIds.filter((id) =>
@@ -797,12 +797,12 @@ export default function RolesPage() {
                               (permission) => {
                                 const checked =
                                   form.permission_ids.includes(
-                                    permission._id,
+                                    permission.id,
                                   );
 
                                 return (
                                   <label
-                                    key={permission._id}
+                                    key={permission.id}
                                     className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 transition hover:bg-gray-50"
                                   >
                                     <input
@@ -810,7 +810,7 @@ export default function RolesPage() {
                                       checked={checked}
                                       onChange={() =>
                                         togglePermission(
-                                          permission._id,
+                                          permission.id,
                                         )
                                       }
                                       className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"

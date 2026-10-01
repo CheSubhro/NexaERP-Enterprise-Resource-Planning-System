@@ -1,3 +1,4 @@
+
 export interface Permission {
   name: string
   slug: string
@@ -15,7 +16,8 @@ export interface Role {
 }
 
 export interface User {
-  _id: string
+  id: string
+  _id?: string
   name: string
   email: string
   role_id: string
@@ -40,3 +42,4 @@ export interface CurrentUserResponse {
   role: Role | null
   permissions: Permission[]
 }
+

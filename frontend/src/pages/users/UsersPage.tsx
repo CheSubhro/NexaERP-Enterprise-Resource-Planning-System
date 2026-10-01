@@ -1,262 +1,311 @@
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'
 
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth'
 
-import { getRoleOptions } from '../../lib/api/roles';
+import { getRoleOptions } from '../../lib/api/roles'
+import {
+  createUser,
+  deleteUser,
+  getUsers,
+  updateUser,
+} from '../../lib/api/users'
 
-import { createUser, deleteUser, getUsers, updateUser } from '../../lib/api/users';
-
-import type { Role } from '../../types/role';
-
-import type { UpdateUserRequest, User } from '../../types/user';
+import type { Role } from '../../types/role'
+import type { UpdateUserRequest, User } from '../../types/user'
 
 interface UserForm {
-  name: string;
-  email: string;
-  password: string;
-  role_id: string;
+  name: string
+  email: string
+  password: string
+  role_id: string
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 10
 
 const createInitialForm = (): UserForm => ({
   name: '',
   email: '',
   password: '',
   role_id: '',
-});
+})
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const response = (
     error as {
       response?: {
         data?: {
-          message?: string;
-        };
-      };
+          message?: string
+        }
+      }
     }
-  ).response;
+  ).response
 
-  return response?.data?.message || fallback;
+  return response?.data?.message || fallback
 }
 
 function formatDate(value?: string): string {
   if (!value) {
-    return '—';
+    return '—'
   }
 
-  const date = new Date(value);
+  const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return '—';
+    return '—'
   }
 
   return new Intl.DateTimeFormat('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  }).format(date);
+  }).format(date)
 }
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth()
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [users, setUsers] = useState<User[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [form, setForm] = useState<UserForm>(createInitialForm());
-  const [saving, setSaving] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [form, setForm] = useState<UserForm>(createInitialForm())
+  const [saving, setSaving] = useState(false)
 
-  const [deleteUserTarget, setDeleteUserTarget] = useState<User | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [deleteUserTarget, setDeleteUserTarget] =
+    useState<User | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const currentUserId = String(currentUser?._id || '');
+  const currentUserId = String(
+    currentUser?.id || currentUser?._id || '',
+  )
 
   const roleMap = useMemo(() => {
-    return new Map(roles.map((role) => [String(role._id), role.name]));
-  }, [roles]);
+    return new Map(
+      roles.map((role) => [String(role.id), role.name]),
+    )
+  }, [roles])
 
   const loadData = async () => {
     try {
-      setLoading(true);
-      setError('');
+      setLoading(true)
+      setError('')
 
       const [usersResponse, rolesResponse] = await Promise.all([
         getUsers(),
         getRoleOptions(),
-      ]);
+      ])
 
-      setUsers(usersResponse.data);
-      setRoles(rolesResponse.data);
+      setUsers(usersResponse.data)
+      setRoles(rolesResponse.data)
     } catch (error) {
-      setError(getErrorMessage(error, 'Unable to load users.'));
+      setError(getErrorMessage(error, 'Unable to load users.'))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
 
   const filteredUsers = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+    const searchValue = search.trim().toLowerCase()
 
     return users.filter((user) => {
       const roleName =
-        user.role?.name || roleMap.get(user.role_id) || 'Unknown';
+        user.role?.name ||
+        roleMap.get(String(user.role_id)) ||
+        'Unknown'
 
-      const searchableText = [user.name, user.email, roleName]
+      const searchableText = [
+        user.name,
+        user.email,
+        roleName,
+      ]
         .filter(Boolean)
         .join(' ')
-        .toLowerCase();
+        .toLowerCase()
 
       const matchesSearch =
-        !searchValue || searchableText.includes(searchValue);
+        !searchValue || searchableText.includes(searchValue)
 
-      const matchesRole = !roleFilter || user.role_id === roleFilter;
+      const matchesRole =
+        !roleFilter ||
+        String(user.role_id) === String(roleFilter)
 
-      return matchesSearch && matchesRole;
-    });
-  }, [users, search, roleFilter, roleMap]);
+      return matchesSearch && matchesRole
+    })
+  }, [users, search, roleFilter, roleMap])
 
   const totalPages = Math.max(
     1,
     Math.ceil(filteredUsers.length / ITEMS_PER_PAGE),
-  );
+  )
 
-  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const safeCurrentPage = Math.min(currentPage, totalPages)
 
   const paginatedUsers = useMemo(() => {
-    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex =
+      (safeCurrentPage - 1) * ITEMS_PER_PAGE
 
-    return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredUsers, safeCurrentPage]);
+    return filteredUsers.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE,
+    )
+  }, [filteredUsers, safeCurrentPage])
 
   const startItem =
     filteredUsers.length === 0
       ? 0
-      : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1
 
   const endItem = Math.min(
     safeCurrentPage * ITEMS_PER_PAGE,
     filteredUsers.length,
-  );
+  )
 
   const openAddModal = () => {
-    setEditingUser(null);
-    setForm(createInitialForm());
-    setError('');
-    setIsModalOpen(true);
-  };
+    setEditingUser(null)
+    setForm(createInitialForm())
+    setError('')
+    setIsModalOpen(true)
+  }
 
   const openEditModal = (user: User) => {
-    setEditingUser(user);
+    setEditingUser(user)
 
     setForm({
       name: user.name,
       email: user.email,
       password: '',
       role_id: user.role_id,
-    });
+    })
 
-    setError('');
-    setIsModalOpen(true);
-  };
+    setError('')
+    setIsModalOpen(true)
+  }
 
   const closeModal = () => {
     if (saving) {
-      return;
+      return
     }
 
-    setIsModalOpen(false);
-    setEditingUser(null);
-    setForm(createInitialForm());
-  };
+    setIsModalOpen(false)
+    setEditingUser(null)
+    setForm(createInitialForm())
+  }
 
   const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement
+    >,
   ) => {
-    const { name, value } = event.target;
+    const { name, value } = event.target
 
     setForm((current) => ({
       ...current,
       [name]: value,
-    }));
-  };
+    }))
+  }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
+  const handleSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+    setError('')
 
     if (!form.name.trim()) {
-      setError('Please enter the user name.');
-      return;
+      setError('Please enter the user name.')
+      return
     }
 
     if (!form.email.trim()) {
-      setError('Please enter the email address.');
-      return;
+      setError('Please enter the email address.')
+      return
     }
 
     if (!editingUser && form.password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
+      setError('Password must be at least 8 characters.')
+      return
     }
 
-    if (editingUser && form.password && form.password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
+    if (
+      editingUser &&
+      form.password &&
+      form.password.length < 8
+    ) {
+      setError('Password must be at least 8 characters.')
+      return
     }
 
     if (!form.role_id) {
-      setError('Please select a role.');
-      return;
+      setError('Please select a role.')
+      return
     }
 
     try {
-      setSaving(true);
+      setSaving(true)
 
       if (editingUser) {
         const data: UpdateUserRequest = {
           name: form.name.trim(),
           email: form.email.trim(),
           role_id: form.role_id,
-        };
-
-        if (form.password) {
-          data.password = form.password;
         }
 
-        const response = await updateUser(editingUser._id, data);
+        if (form.password) {
+          data.password = form.password
+        }
+
+        const editingUserId = String(
+          editingUser.id || editingUser._id || '',
+        )
+
+        if (!editingUserId) {
+          throw new Error('User ID is missing.')
+        }
+
+        const response = await updateUser(
+          editingUserId,
+          data,
+        )
 
         setUsers((current) =>
-          current.map((user) =>
-            user._id === editingUser._id ? response.data : user,
-          ),
-        );
+          current.map((user) => {
+            const userId = String(
+              user.id || user._id || '',
+            )
+
+            return userId === editingUserId
+              ? response.data
+              : user
+          }),
+        )
       } else {
         const response = await createUser({
           name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
           role_id: form.role_id,
-        });
+        })
 
-        setUsers((current) => [response.data, ...current]);
-        setCurrentPage(1);
+        setUsers((current) => [
+          response.data,
+          ...current,
+        ])
+
+        setCurrentPage(1)
       }
 
-      closeModal();
+      closeModal()
     } catch (error) {
       setError(
         getErrorMessage(
@@ -265,57 +314,78 @@ export default function UsersPage() {
             ? 'Unable to update user.'
             : 'Unable to create user.',
         ),
-      );
+      )
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleDelete = async () => {
     if (!deleteUserTarget) {
-      return;
+      return
     }
 
     try {
-      setDeleting(true);
-      setError('');
+      setDeleting(true)
+      setError('')
 
-      await deleteUser(deleteUserTarget._id);
+      const deleteUserId = String(
+        deleteUserTarget.id ||
+          deleteUserTarget._id ||
+          '',
+      )
+
+      if (!deleteUserId) {
+        throw new Error('User ID is missing.')
+      }
+
+      await deleteUser(deleteUserId)
 
       setUsers((current) =>
-        current.filter((user) => user._id !== deleteUserTarget._id),
-      );
+        current.filter(
+          (user) =>
+            String(user.id || user._id || '') !==
+            deleteUserId,
+        ),
+      )
 
-      setDeleteUserTarget(null);
+      setDeleteUserTarget(null)
     } catch (error) {
-      setError(getErrorMessage(error, 'Unable to delete user.'));
+      setError(
+        getErrorMessage(
+          error,
+          'Unable to delete user.',
+        ),
+      )
     } finally {
-      setDeleting(false);
+      setDeleting(false)
     }
-  };
+  }
 
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  };
+    setSearch(value)
+    setCurrentPage(1)
+  }
 
   const handleRoleFilterChange = (value: string) => {
-    setRoleFilter(value);
-    setCurrentPage(1);
-  };
+    setRoleFilter(value)
+    setCurrentPage(1)
+  }
 
   const clearFilters = () => {
-    setSearch('');
-    setRoleFilter('');
-    setCurrentPage(1);
-  };
+    setSearch('')
+    setRoleFilter('')
+    setCurrentPage(1)
+  }
 
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-sm text-gray-500">Loading users...</p>
+        <p className="text-sm text-gray-500">
+          Loading users...
+        </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -323,7 +393,9 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Users
+          </h1>
 
           <p className="mt-1 text-sm text-gray-500">
             Manage system users and their roles
@@ -342,14 +414,18 @@ export default function UsersPage() {
       {/* Error */}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm font-medium text-red-600">{error}</p>
+          <p className="text-sm font-medium text-red-600">
+            {error}
+          </p>
         </div>
       )}
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Total Users</p>
+          <p className="text-sm font-medium text-gray-500">
+            Total Users
+          </p>
 
           <p className="mt-2 text-2xl font-bold text-gray-900">
             {users.length}
@@ -357,7 +433,9 @@ export default function UsersPage() {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Available Roles</p>
+          <p className="text-sm font-medium text-gray-500">
+            Available Roles
+          </p>
 
           <p className="mt-2 text-2xl font-bold text-gray-900">
             {roles.length}
@@ -380,7 +458,9 @@ export default function UsersPage() {
               id="user-search"
               type="text"
               value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
+              onChange={(event) =>
+                handleSearchChange(event.target.value)
+              }
               placeholder="Search name, email or role..."
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
@@ -405,13 +485,13 @@ export default function UsersPage() {
               <option value="">All Roles</option>
 
               {roles.map((role) => {
-                const roleId = String(role._id);
+                const roleId = String(role.id)
 
                 return (
                   <option key={roleId} value={roleId}>
                     {role.name}
                   </option>
-                );
+                )
               })}
             </select>
           </div>
@@ -419,7 +499,8 @@ export default function UsersPage() {
 
         <div className="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
-            Showing {startItem} to {endItem} of {filteredUsers.length} users
+            Showing {startItem} to {endItem} of{' '}
+            {filteredUsers.length} users
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -434,7 +515,9 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() =>
-                setCurrentPage((page) => Math.max(1, page - 1))
+                setCurrentPage((page) =>
+                  Math.max(1, page - 1),
+                )
               }
               disabled={safeCurrentPage === 1}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -449,7 +532,9 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() =>
-                setCurrentPage((page) => Math.min(totalPages, page + 1))
+                setCurrentPage((page) =>
+                  Math.min(totalPages, page + 1),
+                )
               }
               disabled={safeCurrentPage === totalPages}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -502,11 +587,18 @@ export default function UsersPage() {
                 </tr>
               ) : (
                 paginatedUsers.map((user) => {
-                  const userId = String(user._id);
-                  const isCurrentUser = userId === currentUserId;
+                  const userId = String(
+                    user.id || user._id || '',
+                  )
+
+                  const isCurrentUser =
+                    userId === currentUserId
 
                   return (
-                    <tr key={userId} className="hover:bg-gray-50">
+                    <tr
+                      key={userId}
+                      className="hover:bg-gray-50"
+                    >
                       {/* Name */}
                       <td className="px-6 py-4">
                         <div>
@@ -533,7 +625,9 @@ export default function UsersPage() {
                       <td className="px-6 py-4">
                         <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                           {user.role?.name ||
-                            roleMap.get(user.role_id) ||
+                            roleMap.get(
+                              String(user.role_id),
+                            ) ||
                             'Unknown'}
                         </span>
                       </td>
@@ -550,7 +644,9 @@ export default function UsersPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
-                            onClick={() => openEditModal(user)}
+                            onClick={() =>
+                              openEditModal(user)
+                            }
                             className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
                           >
                             Edit
@@ -559,7 +655,9 @@ export default function UsersPage() {
                           {!isCurrentUser && (
                             <button
                               type="button"
-                              onClick={() => setDeleteUserTarget(user)}
+                              onClick={() =>
+                                setDeleteUserTarget(user)
+                              }
                               className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
                             >
                               Delete
@@ -568,7 +666,7 @@ export default function UsersPage() {
                         </div>
                       </td>
                     </tr>
-                  );
+                  )
                 })
               )}
             </tbody>
@@ -584,7 +682,9 @@ export default function UsersPage() {
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editingUser ? 'Edit User' : 'Add User'}
+                  {editingUser
+                    ? 'Edit User'
+                    : 'Add User'}
                 </h2>
 
                 <p className="mt-1 text-xs text-gray-500">
@@ -605,7 +705,10 @@ export default function UsersPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5 p-6">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5 p-6"
+            >
               {/* Name */}
               <div>
                 <label
@@ -677,7 +780,8 @@ export default function UsersPage() {
 
                 {editingUser && (
                   <p className="mt-1.5 text-xs text-gray-500">
-                    Leave blank if you do not want to change the password.
+                    Leave blank if you do not want to
+                    change the password.
                   </p>
                 )}
               </div>
@@ -699,16 +803,21 @@ export default function UsersPage() {
                   required
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="">Select a role</option>
+                  <option value="">
+                    Select a role
+                  </option>
 
                   {roles.map((role) => {
-                    const roleId = String(role._id);
+                    const roleId = String(role.id)
 
                     return (
-                      <option key={roleId} value={roleId}>
+                      <option
+                        key={roleId}
+                        value={roleId}
+                      >
                         {role.name}
                       </option>
-                    );
+                    )
                   })}
                 </select>
               </div>
@@ -752,7 +861,8 @@ export default function UsersPage() {
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Are you sure you want to delete this user?
+                Are you sure you want to delete this
+                user?
               </p>
             </div>
 
@@ -769,7 +879,9 @@ export default function UsersPage() {
 
                 <p className="mt-1 text-xs text-gray-500">
                   {deleteUserTarget.role?.name ||
-                    roleMap.get(deleteUserTarget.role_id) ||
+                    roleMap.get(
+                      String(deleteUserTarget.role_id),
+                    ) ||
                     'Unknown role'}
                 </p>
               </div>
@@ -783,7 +895,9 @@ export default function UsersPage() {
             <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
               <button
                 type="button"
-                onClick={() => setDeleteUserTarget(null)}
+                onClick={() =>
+                  setDeleteUserTarget(null)
+                }
                 disabled={deleting}
                 className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
@@ -796,13 +910,15 @@ export default function UsersPage() {
                 disabled={deleting}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {deleting ? 'Deleting...' : 'Delete User'}
+                {deleting
+                  ? 'Deleting...'
+                  : 'Delete User'}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }
 

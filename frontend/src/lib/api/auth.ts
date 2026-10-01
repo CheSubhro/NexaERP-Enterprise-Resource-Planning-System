@@ -1,41 +1,32 @@
-import api from './axios'
+
+import api from './axios';
 
 import type {
   CurrentUserResponse,
   LoginRequest,
   LoginResponse,
-  User,
-} from '../../types/auth'
+} from '../../types/auth';
 
 export const login = async (
-  credentials: LoginRequest,
+  data: LoginRequest,
 ): Promise<LoginResponse> => {
   const response = await api.post<LoginResponse>(
     '/auth/login',
-    credentials,
-  )
+    data,
+  );
 
-  return response.data
-}
+  return response.data;
+};
 
-export const getCurrentUser = async (): Promise<User> => {
+export const getCurrentUser = async (): Promise<CurrentUserResponse> => {
   const response = await api.get<CurrentUserResponse>(
     '/auth/user',
-  )
+  );
 
-  const { user, role, permissions } = response.data
-
-  return {
-    ...user,
-    role: role
-      ? {
-          ...role,
-          permissions,
-        }
-      : undefined,
-  }
-}
+  return response.data;
+};
 
 export const logout = async (): Promise<void> => {
-  await api.post('/auth/logout')
-}
+  await api.post('/auth/logout');
+};
+

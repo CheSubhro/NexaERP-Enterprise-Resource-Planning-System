@@ -1,6 +1,6 @@
+
 export interface RolePermission {
-  id?: string
-  _id: string
+  id: string
   name: string
   slug: string
   module: string
@@ -8,12 +8,12 @@ export interface RolePermission {
 }
 
 export interface Role {
-  id?: string
   _id: string
+  id?: string
   name: string
   slug: string
-  description: string | null
-  permission_ids: string[]
+  description?: string
+  permission_ids?: string[]
   permissions?: RolePermission[]
 }
 
@@ -21,3 +21,4 @@ export interface RolesResponse {
   message: string
   data: Role[]
 }
+
