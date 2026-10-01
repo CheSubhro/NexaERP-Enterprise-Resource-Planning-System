@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   createSupplier,
@@ -8,10 +8,7 @@ import {
   updateSupplier,
 } from '../../lib/api/suppliers'
 
-import type {
-  Supplier,
-  SupplierStatus,
-} from '../../types/supplier'
+import type { Supplier, SupplierStatus } from '../../types/supplier'
 
 interface SupplierForm {
   name: string
@@ -45,21 +42,31 @@ function SuppliersPage() {
   const [error, setError] = useState('')
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+
   const [editingSupplier, setEditingSupplier] =
     useState<Supplier | null>(null)
 
   const [form, setForm] = useState<SupplierForm>(initialForm)
+
   const [saving, setSaving] = useState(false)
 
   const [deleteSupplierTarget, setDeleteSupplierTarget] =
     useState<Supplier | null>(null)
+
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const itemsPerPage = 10
 
   const loadSuppliers = async () => {
     try {
       setError('')
 
       const response = await getSuppliers()
+
       setSuppliers(response.data)
     } catch {
       setError('Unable to load suppliers.')
@@ -71,6 +78,53 @@ function SuppliersPage() {
   useEffect(() => {
     loadSuppliers()
   }, [])
+
+  const filteredSuppliers = useMemo(() => {
+    const searchValue = search.trim().toLowerCase()
+
+    return suppliers.filter((supplier) => {
+      const matchesSearch =
+        !searchValue ||
+        supplier.name.toLowerCase().includes(searchValue) ||
+        supplier.company_name.toLowerCase().includes(searchValue) ||
+        supplier.phone.toLowerCase().includes(searchValue) ||
+        supplier.email.toLowerCase().includes(searchValue) ||
+        supplier.city.toLowerCase().includes(searchValue) ||
+        supplier.state.toLowerCase().includes(searchValue) ||
+        supplier.gst_number.toLowerCase().includes(searchValue)
+
+      const matchesStatus =
+        !statusFilter || supplier.status === statusFilter
+
+      return matchesSearch && matchesStatus
+    })
+  }, [suppliers, search, statusFilter])
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredSuppliers.length / itemsPerPage),
+  )
+
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+
+  const paginatedSuppliers = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * itemsPerPage
+
+    return filteredSuppliers.slice(
+      startIndex,
+      startIndex + itemsPerPage,
+    )
+  }, [filteredSuppliers, safeCurrentPage])
+
+  const startItem =
+    filteredSuppliers.length === 0
+      ? 0
+      : (safeCurrentPage - 1) * itemsPerPage + 1
+
+  const endItem = Math.min(
+    safeCurrentPage * itemsPerPage,
+    filteredSuppliers.length,
+  )
 
   const openAddModal = () => {
     setEditingSupplier(null)
@@ -131,26 +185,44 @@ function SuppliersPage() {
       setSaving(true)
       setError('')
 
+      const payload = {
+        ...form,
+        name: form.name.trim(),
+        company_name: form.company_name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        address: form.address.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        pincode: form.pincode.trim(),
+        gst_number: form.gst_number.trim().toUpperCase(),
+      }
+
       if (editingSupplier) {
         const response = await updateSupplier(
           editingSupplier.id,
-          form,
+          payload,
         )
 
         setSuppliers((current) =>
-          current.map((supplier) =>
-            supplier.id === editingSupplier.id
-              ? response.data
-              : supplier,
-          ),
+          current
+            .map((supplier) =>
+              supplier.id === editingSupplier.id
+                ? response.data
+                : supplier,
+            )
+            .sort((a, b) =>
+              a.name.localeCompare(b.name),
+            ),
         )
       } else {
-        const response = await createSupplier(form)
+        const response = await createSupplier(payload)
 
-        setSuppliers((current) => [
-          response.data,
-          ...current,
-        ])
+        setSuppliers((current) =>
+          [...current, response.data].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          ),
+        )
       }
 
       closeModal()
@@ -167,7 +239,9 @@ function SuppliersPage() {
 
       setError(
         response?.data?.message ||
-          'Unable to save supplier.',
+          (editingSupplier
+            ? 'Unable to update supplier.'
+            : 'Unable to create supplier.'),
       )
     } finally {
       setSaving(false)
@@ -213,6 +287,12 @@ function SuppliersPage() {
     }
   }
 
+  const clearFilters = () => {
+    setSearch('')
+    setStatusFilter('')
+    setCurrentPage(1)
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -225,14 +305,15 @@ function SuppliersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Suppliers
           </h1>
 
           <p className="mt-1 text-sm text-gray-500">
-            Manage your suppliers and vendor information
+            Manage your suppliers and vendor information.
           </p>
         </div>
 
@@ -245,6 +326,7 @@ function SuppliersPage() {
         </button>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm font-medium text-red-600">
@@ -253,101 +335,182 @@ function SuppliersPage() {
         </div>
       )}
 
+      {/* Filters */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Search */}
+          <div className="md:col-span-2">
+            <label
+              htmlFor="supplier-search"
+              className="mb-1.5 block text-sm font-medium text-gray-700"
+            >
+              Search
+            </label>
+
+            <input
+              id="supplier-search"
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setCurrentPage(1)
+              }}
+              placeholder="Search by name, company, phone, email, GST or location..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label
+              htmlFor="supplier-status-filter"
+              className="mb-1.5 block text-sm font-medium text-gray-700"
+            >
+              Status
+            </label>
+
+            <select
+              id="supplier-status-filter"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value)
+                setCurrentPage(1)
+              }}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-gray-500">
+            {filteredSuppliers.length} supplier
+            {filteredSuppliers.length !== 1 ? 's' : ''} found
+          </p>
+
+          {(search || statusFilter) && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Suppliers Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px]">
-            <thead className="border-b border-gray-200 bg-gray-50">
+          <table className="min-w-[1100px] divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Supplier
                 </th>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Company
                 </th>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Phone
                 </th>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Email
                 </th>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Location
                 </th>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   GST Number
                 </th>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Status
                 </th>
 
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Actions
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-100">
-              {suppliers.length === 0 ? (
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {paginatedSuppliers.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
                     className="px-6 py-10 text-center text-sm text-gray-500"
                   >
-                    No suppliers found.
+                    {suppliers.length === 0
+                      ? 'No suppliers found.'
+                      : 'No suppliers match the selected filters.'}
                   </td>
                 </tr>
               ) : (
-                suppliers.map((supplier) => (
+                paginatedSuppliers.map((supplier) => (
                   <tr
                     key={supplier.id}
                     className="hover:bg-gray-50"
                   >
+                    {/* Supplier */}
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-gray-900">
                         {supplier.name}
                       </p>
                     </td>
 
+                    {/* Company */}
                     <td className="px-6 py-4">
                       <p className="text-sm text-gray-700">
                         {supplier.company_name}
                       </p>
                     </td>
 
+                    {/* Phone */}
                     <td className="px-6 py-4">
                       <p className="text-sm text-gray-700">
                         {supplier.phone}
                       </p>
                     </td>
 
+                    {/* Email */}
                     <td className="px-6 py-4">
                       <p className="text-sm text-gray-700">
-                        {supplier.email || '-'}
+                        {supplier.email || '—'}
                       </p>
                     </td>
 
+                    {/* Location */}
                     <td className="px-6 py-4">
                       <p className="text-sm text-gray-700">
-                        {supplier.city}, {supplier.state}
+                        {supplier.city || '—'}
+                        {supplier.state
+                          ? `, ${supplier.state}`
+                          : ''}
                       </p>
 
                       <p className="mt-1 text-xs text-gray-400">
-                        {supplier.pincode}
+                        {supplier.pincode || '—'}
                       </p>
                     </td>
 
+                    {/* GST */}
                     <td className="px-6 py-4">
                       <p className="text-sm font-medium text-gray-700">
-                        {supplier.gst_number || '-'}
+                        {supplier.gst_number || '—'}
                       </p>
                     </td>
 
+                    {/* Status */}
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -360,6 +523,7 @@ function SuppliersPage() {
                       </span>
                     </td>
 
+                    {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button
@@ -367,7 +531,7 @@ function SuppliersPage() {
                           onClick={() =>
                             openEditModal(supplier)
                           }
-                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
+                          className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
                         >
                           Edit
                         </button>
@@ -380,7 +544,7 @@ function SuppliersPage() {
                           disabled={
                             deletingId === supplier.id
                           }
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {deletingId === supplier.id
                             ? 'Deleting...'
@@ -394,8 +558,62 @@ function SuppliersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredSuppliers.length > 0 && (
+          <div className="flex flex-col gap-3 border-t border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500">
+              Showing{' '}
+              <span className="font-medium text-gray-700">
+                {startItem}
+              </span>{' '}
+              to{' '}
+              <span className="font-medium text-gray-700">
+                {endItem}
+              </span>{' '}
+              of{' '}
+              <span className="font-medium text-gray-700">
+                {filteredSuppliers.length}
+              </span>{' '}
+              suppliers
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={safeCurrentPage === 1}
+                onClick={() =>
+                  setCurrentPage((page) =>
+                    Math.max(1, page - 1),
+                  )
+                }
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <span className="px-2 text-sm text-gray-600">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={safeCurrentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((page) =>
+                    Math.min(totalPages, page + 1),
+                  )
+                }
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl">
@@ -408,7 +626,7 @@ function SuppliersPage() {
                 </h2>
 
                 <p className="mt-1 text-xs text-gray-500">
-                  Enter supplier and company details
+                  Enter supplier and company details.
                 </p>
               </div>
 
@@ -427,6 +645,7 @@ function SuppliersPage() {
               className="space-y-6 p-6"
             >
               <div className="grid gap-5 md:grid-cols-2">
+                {/* Supplier Name */}
                 <div>
                   <label
                     htmlFor="name"
@@ -447,6 +666,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* Company Name */}
                 <div>
                   <label
                     htmlFor="company_name"
@@ -467,6 +687,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* Phone */}
                 <div>
                   <label
                     htmlFor="phone"
@@ -487,6 +708,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* Email */}
                 <div>
                   <label
                     htmlFor="email"
@@ -501,10 +723,12 @@ function SuppliersPage() {
                     type="email"
                     value={form.email}
                     onChange={handleChange}
+                    maxLength={150}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
 
+                {/* Address */}
                 <div className="md:col-span-2">
                   <label
                     htmlFor="address"
@@ -519,10 +743,12 @@ function SuppliersPage() {
                     value={form.address}
                     onChange={handleChange}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    maxLength={500}
+                    className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
 
+                {/* City */}
                 <div>
                   <label
                     htmlFor="city"
@@ -543,6 +769,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* State */}
                 <div>
                   <label
                     htmlFor="state"
@@ -563,6 +790,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* Pincode */}
                 <div>
                   <label
                     htmlFor="pincode"
@@ -583,6 +811,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* GST Number */}
                 <div>
                   <label
                     htmlFor="gst_number"
@@ -602,6 +831,7 @@ function SuppliersPage() {
                   />
                 </div>
 
+                {/* Status */}
                 <div>
                   <label
                     htmlFor="status"
@@ -628,6 +858,7 @@ function SuppliersPage() {
                 </div>
               </div>
 
+              {/* Actions */}
               <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
                 <button
                   type="button"
@@ -655,6 +886,7 @@ function SuppliersPage() {
         </div>
       )}
 
+      {/* Delete Confirmation */}
       {deleteSupplierTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
