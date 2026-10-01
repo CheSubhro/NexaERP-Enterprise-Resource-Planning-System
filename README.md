@@ -1,3 +1,115 @@
+# NexaERP
+
+NexaERP is a modern full-stack Enterprise Resource Planning (ERP) system designed to manage business operations through a centralized and secure platform.
+
+## 🚀 Features
+
+* 🔐 Authentication with Laravel Sanctum
+* 👥 Role-Based Access Control (RBAC)
+* 🔑 Permissions Management
+* 📊 Dashboard & Business Overview
+* 📦 Product Management
+* 🗂️ Category Management
+* 👤 Customer Management
+* 🏢 Supplier Management
+* 💰 Sales Management
+* 🛒 Purchase Management
+* 💸 Expense Management
+* 📈 Reports & Analytics
+* 👨‍💼 User Management
+* ⚙️ System Settings
+* 📉 Stock & Low-Stock Tracking
+* 🔒 Protected API Routes
+* ✅ Request Validation
+
+## 🛠️ Tech Stack
+
+### Backend
+
+* Laravel 13
+* PHP 8.4
+* MongoDB
+* Laravel Sanctum
+* REST API
+
+### Frontend
+
+* React
+* TypeScript
+* Vite
+* Tailwind CSS
+* React Router
+* Axios
+* Context API
+
+## 📂 Project Structure
+
+```text
+nexa-erp/
+├── backend/
+│   └── Laravel API
+│
+└── frontend/
+    └── React + TypeScript Application
+```
+
+## 📋 Main Modules
+
+* Dashboard
+* Categories
+* Products
+* Customers
+* Suppliers
+* Sales
+* Purchases
+* Expenses
+* Reports
+* Users
+* Roles & Permissions
+* Settings
+
+## 🔐 Security
+
+NexaERP uses Laravel Sanctum for API authentication and a permission-based middleware system for controlling access to different ERP modules and actions.
+
+## ⚙️ Backend Setup
+
+```bash
+cd backend
+composer install
+php artisan serve
+```
+
+Configure your MongoDB connection and environment variables in `.env`.
+
+## 💻 Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Configure the backend API URL in the frontend `.env`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000/api
+```
+
+## 📸 Screenshots
+
+Project screenshots are available in the `screenshot` directory.
+
+## 📌 Project Status
+
+NexaERP is an actively developed ERP application with modular architecture designed to support business management, inventory, sales, purchasing, expenses, reporting, and user access control.
+
+## 👨‍💻 Developer
+
+Developed as a full-stack ERP project using Laravel and React by CheSubhro
+
+
+
 ![Categories](screenshot/screencapture-localhost-5173-categories-2026-10-01-16_37_17.png)
 
 ![Categories](screenshot/screencapture-localhost-5173-categories-2026-10-01-16_37_26.png)
